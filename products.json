@@ -1,0 +1,1377 @@
+[
+  {
+    "id": "p0013-bengali-anarkali",
+    "department": "bengali",
+    "name": "ANARKALI",
+    "unit": "kg",
+    "price": 640
+  },
+  {
+    "id": "p0027-bengali-banarsi-paan",
+    "department": "bengali",
+    "name": "BANARSI PAAN",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0010-bengali-bengali-kulhad",
+    "department": "bengali",
+    "name": "Bengali kulhad",
+    "unit": "pcs",
+    "price": 70,
+    "updatedAt": "2026-05-08T22:47:38.923Z"
+  },
+  {
+    "id": "p0015-bengali-biscoff-kalkand",
+    "department": "bengali",
+    "name": "biscoff kalkand",
+    "unit": "kg",
+    "price": 700
+  },
+  {
+    "id": "p0019-bengali-cham-cham",
+    "department": "bengali",
+    "name": "CHAM CHAM",
+    "unit": "kg",
+    "price": 640
+  },
+  {
+    "id": "p0008-bengali-chena-pies",
+    "department": "bengali",
+    "name": "CHENA PIES",
+    "unit": "pcs",
+    "price": 70,
+    "updatedAt": "2026-05-08T22:47:38.929Z"
+  },
+  {
+    "id": "p0021-bengali-chenna-toast",
+    "department": "bengali",
+    "name": "Chenna toast",
+    "unit": "kg",
+    "price": 640
+  },
+  {
+    "id": "p0014-bengali-gajar-bahar",
+    "department": "bengali",
+    "name": "GAJAR BAHAR",
+    "unit": "kg",
+    "price": 640
+  },
+  {
+    "id": "p0004-bengali-heera-mani",
+    "department": "bengali",
+    "name": "HEERA MANI",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0025-bengali-kalakand",
+    "department": "bengali",
+    "name": "KALAKAND",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0026-bengali-kalakand-s-f",
+    "department": "bengali",
+    "name": "KALAKAND S.F",
+    "unit": "kg",
+    "price": 750
+  },
+  {
+    "id": "p0018-bengali-kheer-kadham",
+    "department": "bengali",
+    "name": "KHEER KADHAM",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0006-bengali-lal-mohini",
+    "department": "bengali",
+    "name": "Lal Mohini",
+    "unit": "kg",
+    "price": 640
+  },
+  {
+    "id": "p0012-bengali-malai-chap",
+    "department": "bengali",
+    "name": "MALAI CHAP",
+    "unit": "kg",
+    "price": 640
+  },
+  {
+    "id": "p0003-bengali-malai-roll",
+    "department": "bengali",
+    "name": "MALAI ROLL",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0016-bengali-mango-cream",
+    "department": "bengali",
+    "name": "MANGO CREAM",
+    "unit": "kg",
+    "price": 640
+  },
+  {
+    "id": "p0001-bengali-mango-kalakand",
+    "department": "bengali",
+    "name": "mango kalakand",
+    "unit": "kg",
+    "price": 680,
+    "updatedAt": "2026-05-08T22:22:20.979Z"
+  },
+  {
+    "id": "p0002-bengali-mango-malai-roll",
+    "department": "bengali",
+    "name": "mango malai roll",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0011-bengali-pakhija",
+    "department": "bengali",
+    "name": "PAKHIJA",
+    "unit": "kg",
+    "price": 640
+  },
+  {
+    "id": "p0127-bengali-paneer",
+    "department": "bengali",
+    "name": "paneer",
+    "unit": "kg",
+    "price": 500
+  },
+  {
+    "id": "p0141-bengali-petha-aangoori",
+    "department": "bengali",
+    "name": "PETHA AANGOORI",
+    "unit": "kg",
+    "price": 480
+  },
+  {
+    "id": "p0142-bengali-petha-ball",
+    "department": "bengali",
+    "name": "PETHA BALL",
+    "unit": "kg",
+    "price": 480
+  },
+  {
+    "id": "p0022-bengali-petha-roll",
+    "department": "bengali",
+    "name": "PETHA ROLL",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0017-bengali-pineapple-cream",
+    "department": "bengali",
+    "name": "PINEAPPLE CREAM",
+    "unit": "kg",
+    "price": 640
+  },
+  {
+    "id": "p0009-bengali-rabri-rasmalai",
+    "department": "bengali",
+    "name": "RABRI RASMALAI",
+    "unit": "pcs",
+    "price": 70,
+    "updatedAt": "2026-05-08T22:47:38.929Z"
+  },
+  {
+    "id": "p0029-bengali-rajbhog",
+    "department": "bengali",
+    "name": "RAJBHOG",
+    "unit": "pcs",
+    "price": 35,
+    "updatedAt": "2026-05-08T22:47:38.929Z"
+  },
+  {
+    "id": "p0028-bengali-rasgulla",
+    "department": "bengali",
+    "name": "RASGULLA",
+    "unit": "pcs",
+    "price": 22,
+    "updatedAt": "2026-05-08T22:47:38.929Z"
+  },
+  {
+    "id": "p0007-bengali-rasgulli",
+    "department": "bengali",
+    "name": "RASGULLI",
+    "unit": "kg",
+    "price": 640
+  },
+  {
+    "id": "p0030-bengali-rasmalai",
+    "department": "bengali",
+    "name": "RASMALAI",
+    "unit": "pcs",
+    "price": 35,
+    "updatedAt": "2026-05-08T22:47:38.929Z"
+  },
+  {
+    "id": "p0023-bengali-sandesh",
+    "department": "bengali",
+    "name": "SANDESH",
+    "unit": "kg",
+    "price": 640
+  },
+  {
+    "id": "p0159-chat-aata-golgappe",
+    "department": "chat",
+    "name": "aata golgappe",
+    "unit": "pcs",
+    "price": 30,
+    "updatedAt": "2026-05-08T22:47:38.930Z"
+  },
+  {
+    "id": "p0165-chat-aloo-tikki",
+    "department": "chat",
+    "name": "aloo tikki",
+    "unit": "pcs",
+    "price": 25,
+    "updatedAt": "2026-05-08T22:47:38.930Z"
+  },
+  {
+    "id": "p0179-chat-besan-sev",
+    "department": "chat",
+    "name": "besan sev",
+    "unit": "kg",
+    "price": 400
+  },
+  {
+    "id": "p0181-chat-chat-masala",
+    "department": "chat",
+    "name": "chat masala",
+    "unit": "kg",
+    "price": 400
+  },
+  {
+    "id": "p0171-chat-dahi-chat",
+    "department": "chat",
+    "name": "dahi (chat)",
+    "unit": "kg",
+    "price": 80
+  },
+  {
+    "id": "p0170-chat-dahi-bhala",
+    "department": "chat",
+    "name": "dahi bhala",
+    "unit": "pcs",
+    "price": 35,
+    "updatedAt": "2026-05-08T22:47:38.930Z"
+  },
+  {
+    "id": "p0177-chat-hari-chythney",
+    "department": "chat",
+    "name": "hari chythney",
+    "unit": "kg",
+    "price": 500
+  },
+  {
+    "id": "p0178-chat-imlee-chuthney",
+    "department": "chat",
+    "name": "imlee chuthney",
+    "unit": "kg",
+    "price": 600
+  },
+  {
+    "id": "p0166-chat-kesar",
+    "department": "chat",
+    "name": "kesar",
+    "unit": "kg",
+    "price": 200
+  },
+  {
+    "id": "p0162-chat-khatha-paani",
+    "department": "chat",
+    "name": "khatha paani",
+    "unit": "kg",
+    "price": 120
+  },
+  {
+    "id": "p0175-chat-lacha-tokri",
+    "department": "chat",
+    "name": "lacha tokri",
+    "unit": "pcs",
+    "price": 90,
+    "updatedAt": "2026-05-08T22:47:38.930Z"
+  },
+  {
+    "id": "p0163-chat-meetha-paani",
+    "department": "chat",
+    "name": "meetha paani",
+    "unit": "kg",
+    "price": 120
+  },
+  {
+    "id": "p0164-chat-mutter-chat",
+    "department": "chat",
+    "name": "mutter( chat )",
+    "unit": "kg",
+    "price": 200
+  },
+  {
+    "id": "p0161-chat-packet-golgappe",
+    "department": "chat",
+    "name": "packet golgappe",
+    "unit": "pcs",
+    "price": 30,
+    "updatedAt": "2026-05-08T22:47:38.930Z"
+  },
+  {
+    "id": "p0176-chat-palak-chat",
+    "department": "chat",
+    "name": "palak chat",
+    "unit": "kg",
+    "price": 90
+  },
+  {
+    "id": "p0173-chat-papri",
+    "department": "chat",
+    "name": "papri",
+    "unit": "kg",
+    "price": 400
+  },
+  {
+    "id": "p0174-chat-raj-kachori",
+    "department": "chat",
+    "name": "raj kachori",
+    "unit": "pcs",
+    "price": 90,
+    "updatedAt": "2026-05-08T22:47:38.930Z"
+  },
+  {
+    "id": "p0180-chat-salad",
+    "department": "chat",
+    "name": "salad",
+    "unit": "kg",
+    "price": 250
+  },
+  {
+    "id": "p0160-chat-sooji-golgappe",
+    "department": "chat",
+    "name": "sooji golgappe",
+    "unit": "pcs",
+    "price": 35,
+    "updatedAt": "2026-05-08T22:47:38.930Z"
+  },
+  {
+    "id": "p0110-ghee-aata-laddoo",
+    "department": "ghee",
+    "name": "AATA LADDOO",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0108-ghee-balushahi",
+    "department": "ghee",
+    "name": "BALUSHAHI",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0061-ghee-besan-gajak",
+    "department": "ghee",
+    "name": "BESAN GAJAK",
+    "unit": "kg",
+    "price": 750
+  },
+  {
+    "id": "p0054-ghee-besan-laddoo",
+    "department": "ghee",
+    "name": "BESAN LADDOO",
+    "unit": "kg",
+    "price": 650
+  },
+  {
+    "id": "p0111-ghee-chana-dal-barfi",
+    "department": "ghee",
+    "name": "CHANA DAL BARFI",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0107-ghee-chandkala",
+    "department": "ghee",
+    "name": "CHANDKALA",
+    "unit": "kg",
+    "price": 750
+  },
+  {
+    "id": "p0060-ghee-choco-patisha",
+    "department": "ghee",
+    "name": "CHOCO PATISHA",
+    "unit": "kg",
+    "price": 750
+  },
+  {
+    "id": "p0039-ghee-dodha-barfi",
+    "department": "ghee",
+    "name": "DODHA BARFI",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0051-ghee-ghee-laddoo",
+    "department": "ghee",
+    "name": "GHEE LADDOO",
+    "unit": "kg",
+    "price": 660
+  },
+  {
+    "id": "p0148-ghee-ghee-laddoo-1-kg",
+    "department": "ghee",
+    "name": "GHEE LADDOO -1 KG",
+    "unit": "pcs",
+    "price": 640,
+    "updatedAt": "2026-05-08T22:47:38.930Z"
+  },
+  {
+    "id": "p0149-ghee-ghee-laddoo-1-2kg",
+    "department": "ghee",
+    "name": "GHEE LADDOO -1/2KG",
+    "unit": "pcs",
+    "price": 320,
+    "updatedAt": "2026-05-08T22:47:38.930Z"
+  },
+  {
+    "id": "p0106-ghee-gujika",
+    "department": "ghee",
+    "name": "GUJIKA",
+    "unit": "kg",
+    "price": 750
+  },
+  {
+    "id": "p0058-ghee-milk-cake",
+    "department": "ghee",
+    "name": "MILK CAKE",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0041-ghee-moongdal-barfi",
+    "department": "ghee",
+    "name": "MOONGDAL BARFI",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0052-ghee-motichoor-ladoo",
+    "department": "ghee",
+    "name": "MOTICHOOR LADOO",
+    "unit": "kg",
+    "price": 740
+  },
+  {
+    "id": "p0040-ghee-nariyal-barfi",
+    "department": "ghee",
+    "name": "NARIYAL BARFI",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0156-ghee-navratan-laddoo-1-kg",
+    "department": "ghee",
+    "name": "NAVRATAN LADDOO -1 kg",
+    "unit": "pcs",
+    "price": 750,
+    "updatedAt": "2026-05-08T22:47:38.930Z"
+  },
+  {
+    "id": "p0053-ghee-navratan-ladoo",
+    "department": "ghee",
+    "name": "NAVRATAN LADOO",
+    "unit": "kg",
+    "price": 740
+  },
+  {
+    "id": "p0109-ghee-nazakat-samosa",
+    "department": "ghee",
+    "name": "NAZAKAT SAMOSA",
+    "unit": "kg",
+    "price": 750
+  },
+  {
+    "id": "p0063-ghee-paneer-jalebi",
+    "department": "ghee",
+    "name": "PANEER JALEBI",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0059-ghee-patisha",
+    "department": "ghee",
+    "name": "PATISHA",
+    "unit": "kg",
+    "price": 650
+  },
+  {
+    "id": "p0147-ghee-patisha-1-2-kg",
+    "department": "ghee",
+    "name": "PATISHA -1/2 KG",
+    "unit": "pcs",
+    "price": 325,
+    "updatedAt": "2026-05-08T22:47:38.930Z"
+  },
+  {
+    "id": "p0146-ghee-patsiha-1kg",
+    "department": "ghee",
+    "name": "PATSIHA - 1KG",
+    "unit": "pcs",
+    "price": 650,
+    "updatedAt": "2026-05-08T22:47:38.930Z"
+  },
+  {
+    "id": "p0064-ghee-sohan-cake",
+    "department": "ghee",
+    "name": "SOHAN CAKE",
+    "unit": "kg",
+    "price": 650
+  },
+  {
+    "id": "p0112-ghee-sooth-laddoo",
+    "department": "ghee",
+    "name": "SOOTH LADDOO",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0103-kaju-amavat-barfi-yellow",
+    "department": "kaju",
+    "name": "AMAVAT BARFI - YELLOW",
+    "unit": "kg",
+    "price": 900
+  },
+  {
+    "id": "p0102-kaju-amavat-barfi-green",
+    "department": "kaju",
+    "name": "AMAVAT BARFI -GREEN",
+    "unit": "kg",
+    "price": 900
+  },
+  {
+    "id": "p0104-kaju-amavat-roll-red",
+    "department": "kaju",
+    "name": "AMAVAT ROLL - RED",
+    "unit": "kg",
+    "price": 900
+  },
+  {
+    "id": "p0105-kaju-amavat-roll-yellow",
+    "department": "kaju",
+    "name": "AMAVAT ROLL - YELLOW",
+    "unit": "kg",
+    "price": 900
+  },
+  {
+    "id": "p0087-kaju-anjeer-king",
+    "department": "kaju",
+    "name": "ANJEER KING",
+    "unit": "kg",
+    "price": 1500
+  },
+  {
+    "id": "p0088-kaju-anjeer-laddoo",
+    "department": "kaju",
+    "name": "ANJEER LADDOO",
+    "unit": "kg",
+    "price": 1500
+  },
+  {
+    "id": "p0078-kaju-anjeer-sugar-free",
+    "department": "kaju",
+    "name": "ANJEER Sugar free",
+    "unit": "kg",
+    "price": 1600
+  },
+  {
+    "id": "p0089-kaju-badam-choco-ladd0",
+    "department": "kaju",
+    "name": "BADAM CHOCO LADD0",
+    "unit": "kg",
+    "price": 1500
+  },
+  {
+    "id": "p0126-kaju-badam-roasted",
+    "department": "kaju",
+    "name": "BADAM ROASTED -",
+    "unit": "kg",
+    "price": 2400
+  },
+  {
+    "id": "p0074-kaju-badam-roll",
+    "department": "kaju",
+    "name": "BADAM ROLL",
+    "unit": "kg",
+    "price": 1500
+  },
+  {
+    "id": "p0079-kaju-badam-sugar-free",
+    "department": "kaju",
+    "name": "BADAM Sugar free",
+    "unit": "kg",
+    "price": 1700
+  },
+  {
+    "id": "p0094-kaju-badshah-pasand",
+    "department": "kaju",
+    "name": "BADSHAH PASAND",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "department": "kaju",
+    "name": "bluberry barfi",
+    "unit": "kg",
+    "price": 1500,
+    "id": "p0191-kaju-bluberry-barfi",
+    "createdAt": "2026-05-08T23:10:54.098Z",
+    "updatedAt": "2026-05-08T23:10:54.098Z"
+  },
+  {
+    "id": "p0086-kaju-blueberry-bites",
+    "department": "kaju",
+    "name": "BLUEBERRY BITES",
+    "unit": "kg",
+    "price": 1600
+  },
+  {
+    "id": "p0092-kaju-caramel-gujiya",
+    "department": "kaju",
+    "name": "CARAMEL GUJIYA",
+    "unit": "kg",
+    "price": 1500
+  },
+  {
+    "id": "p0085-kaju-chocolate-bites",
+    "department": "kaju",
+    "name": "CHOCOLATE BITES",
+    "unit": "kg",
+    "price": 1600
+  },
+  {
+    "id": "p0045-kaju-chocolate-roll",
+    "department": "kaju",
+    "name": "CHOCOLATE ROLL",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0082-kaju-classic-bites",
+    "department": "kaju",
+    "name": "CLASSIC BITES",
+    "unit": "kg",
+    "price": 1600
+  },
+  {
+    "id": "p0121-kaju-dry-fruits-namkeen",
+    "department": "kaju",
+    "name": "DRY FRUITS NAMKEEN -",
+    "unit": "kg",
+    "price": 1500
+  },
+  {
+    "id": "p0046-kaju-fruit-roll",
+    "department": "kaju",
+    "name": "FRUIT ROLL",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0075-kaju-gulkand-roll",
+    "department": "kaju",
+    "name": "Gulkand Roll",
+    "unit": "kg",
+    "price": 1500
+  },
+  {
+    "id": "p0093-kaju-honey-dew",
+    "department": "kaju",
+    "name": "Honey dew",
+    "unit": "kg",
+    "price": 1500
+  },
+  {
+    "id": "p0020-kaju-kaju-anjeer-barfi",
+    "department": "kaju",
+    "name": "KAJU ANJEER BARFI",
+    "unit": "kg",
+    "price": 1500
+  },
+  {
+    "id": "p0065-kaju-kaju-barfi",
+    "department": "kaju",
+    "name": "KAJU BARFI",
+    "unit": "kg",
+    "price": 1260
+  },
+  {
+    "id": "p0080-kaju-kaju-barfi-sugar-free",
+    "department": "kaju",
+    "name": "KAJU BARFI Sugar free",
+    "unit": "kg",
+    "price": 1900
+  },
+  {
+    "id": "p0143-kaju-kaju-barfi-1kg",
+    "department": "kaju",
+    "name": "KAJU BARFI- 1KG",
+    "unit": "pcs",
+    "price": 1260,
+    "updatedAt": "2026-05-08T22:47:38.930Z"
+  },
+  {
+    "id": "p0144-kaju-kaju-barfi-1-2-kg",
+    "department": "kaju",
+    "name": "KAJU BARFI-1/2 KG",
+    "unit": "pcs",
+    "price": 630,
+    "updatedAt": "2026-05-08T22:47:38.930Z"
+  },
+  {
+    "id": "p0145-kaju-kaju-barfi-1-4-kg",
+    "department": "kaju",
+    "name": "KAJU BARFI-1/4 KG",
+    "unit": "pcs",
+    "price": 315,
+    "updatedAt": "2026-05-08T22:47:38.930Z"
+  },
+  {
+    "id": "p0070-kaju-kaju-deepak",
+    "department": "kaju",
+    "name": "KAJU DEEPAK",
+    "unit": "kg",
+    "price": 1500
+  },
+  {
+    "id": "p0066-kaju-kaju-gajak",
+    "department": "kaju",
+    "name": "KAJU GAJAK",
+    "unit": "kg",
+    "price": 1500
+  },
+  {
+    "id": "p0069-kaju-kaju-gilori",
+    "department": "kaju",
+    "name": "KAJU GILORI",
+    "unit": "kg",
+    "price": 1500
+  },
+  {
+    "id": "p0067-kaju-kaju-kalash",
+    "department": "kaju",
+    "name": "KAJU KALASH",
+    "unit": "kg",
+    "price": 1500
+  },
+  {
+    "id": "p0125-kaju-kaju-roasted",
+    "department": "kaju",
+    "name": "KAJU ROASTED -",
+    "unit": "kg",
+    "price": 2400
+  },
+  {
+    "id": "p0068-kaju-kaju-samosa",
+    "department": "kaju",
+    "name": "KAJU SAMOSA",
+    "unit": "kg",
+    "price": 1500
+  },
+  {
+    "id": "p0091-kaju-kazoor-laddoo",
+    "department": "kaju",
+    "name": "KAZOOR LADDOO",
+    "unit": "kg",
+    "price": 1500
+  },
+  {
+    "id": "p0077-kaju-kazoor-sugar-free",
+    "department": "kaju",
+    "name": "KAZOOR Sugar free",
+    "unit": "kg",
+    "price": 1500
+  },
+  {
+    "id": "p0071-kaju-kesar-barfi",
+    "department": "kaju",
+    "name": "KESAR BARFI",
+    "unit": "kg",
+    "price": 1500
+  },
+  {
+    "id": "p0047-kaju-kesar-peda",
+    "department": "kaju",
+    "name": "KESAR PEDA",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0005-kaju-khajoor-choco",
+    "department": "kaju",
+    "name": "KHAJOOR CHOCO",
+    "unit": "kg",
+    "price": 1500
+  },
+  {
+    "id": "p0042-kaju-khoya-badam-roll",
+    "department": "kaju",
+    "name": "KHOYA BADAM ROLL",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0050-kaju-magdal-laddoo",
+    "department": "kaju",
+    "name": "MAGDAL LADDOO",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0062-kaju-mango-bites",
+    "department": "kaju",
+    "name": "MANGO BITES",
+    "unit": "kg",
+    "price": 1600
+  },
+  {
+    "id": "p0095-kaju-mango-chocolate",
+    "department": "kaju",
+    "name": "MANGO CHOCOLATE",
+    "unit": "kg",
+    "price": 900
+  },
+  {
+    "id": "p0155-kaju-mewa-bite-15-pcs",
+    "department": "kaju",
+    "name": "MEWA BITE 15. PCS",
+    "unit": "pcs",
+    "price": 530,
+    "updatedAt": "2026-05-08T22:47:38.930Z"
+  },
+  {
+    "id": "p0154-kaju-mewa-bite-24-pcs",
+    "department": "kaju",
+    "name": "MEWA BITE 24. PCS",
+    "unit": "pcs",
+    "price": 850,
+    "updatedAt": "2026-05-08T22:47:38.930Z"
+  },
+  {
+    "id": "p0153-kaju-mewa-bite-35-pcs",
+    "department": "kaju",
+    "name": "MEWA BITE 35 PCS",
+    "unit": "pcs",
+    "price": 1270,
+    "updatedAt": "2026-05-08T22:47:38.930Z"
+  },
+  {
+    "id": "p0152-kaju-mewa-bite-50-pcs",
+    "department": "kaju",
+    "name": "MEWA BITE 50 PCS",
+    "unit": "pcs",
+    "price": 1680,
+    "updatedAt": "2026-05-08T22:47:38.930Z"
+  },
+  {
+    "id": "p0099-kaju-milk-chocolate",
+    "department": "kaju",
+    "name": "MILK CHOCOLATE",
+    "unit": "kg",
+    "price": 900
+  },
+  {
+    "id": "p0090-kaju-mix-fruits-laddoo",
+    "department": "kaju",
+    "name": "MIX FRUITS LADDOO",
+    "unit": "kg",
+    "price": 1500
+  },
+  {
+    "id": "p0083-kaju-orange-bites",
+    "department": "kaju",
+    "name": "ORANGE BITES",
+    "unit": "kg",
+    "price": 1600
+  },
+  {
+    "id": "p0101-kaju-paan-chocolate",
+    "department": "kaju",
+    "name": "PAAN CHOCOLATE",
+    "unit": "kg",
+    "price": 900
+  },
+  {
+    "id": "p0100-kaju-pineapple-chocolate",
+    "department": "kaju",
+    "name": "PINEAPPLE CHOCOLATE",
+    "unit": "kg",
+    "price": 900
+  },
+  {
+    "id": "p0043-kaju-pineapple-roll",
+    "department": "kaju",
+    "name": "PINEAPPLE ROLL",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0081-kaju-pista-bites",
+    "department": "kaju",
+    "name": "PISTA BITES",
+    "unit": "kg",
+    "price": 1600
+  },
+  {
+    "id": "p0097-kaju-pista-chocolate",
+    "department": "kaju",
+    "name": "PISTA CHOCOLATE",
+    "unit": "kg",
+    "price": 900
+  },
+  {
+    "id": "p0073-kaju-pista-diamond",
+    "department": "kaju",
+    "name": "PISTA DIAMOND",
+    "unit": "kg",
+    "price": 1600
+  },
+  {
+    "id": "p0072-kaju-pista-roll",
+    "department": "kaju",
+    "name": "PISTA ROLL",
+    "unit": "kg",
+    "price": 1700
+  },
+  {
+    "id": "p0076-kaju-rajkamal",
+    "department": "kaju",
+    "name": "RAJKAMAL",
+    "unit": "kg",
+    "price": 1500
+  },
+  {
+    "id": "p0122-kaju-seb-k-beej",
+    "department": "kaju",
+    "name": "SEB K BEEJ -",
+    "unit": "kg",
+    "price": 1500
+  },
+  {
+    "id": "p0084-kaju-strawberry-bites",
+    "department": "kaju",
+    "name": "STRAWBERRY BITES",
+    "unit": "kg",
+    "price": 1600
+  },
+  {
+    "id": "p0096-kaju-strawberry-choclate",
+    "department": "kaju",
+    "name": "STRAWBERRY CHOCLATE",
+    "unit": "kg",
+    "price": 900
+  },
+  {
+    "id": "p0044-kaju-strawberry-roll",
+    "department": "kaju",
+    "name": "STRAWBERRY ROLL",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0098-kaju-white-chocolate",
+    "department": "kaju",
+    "name": "WHITE CHOCOLATE",
+    "unit": "kg",
+    "price": 900
+  },
+  {
+    "id": "p0032-khowa-bikaneri-barfi",
+    "department": "khowa",
+    "name": "BIKANERI BARFI",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0033-khowa-finger-barfi",
+    "department": "khowa",
+    "name": "FINGER BARFI",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0036-khowa-kesariya-barfi",
+    "department": "khowa",
+    "name": "KESARIYA BARFI",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0034-khowa-khowa-barfi",
+    "department": "khowa",
+    "name": "Khowa barfi",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0048-khowa-lal-peda",
+    "department": "khowa",
+    "name": "LAL PEDA",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0037-khowa-milk-pudding",
+    "department": "khowa",
+    "name": "MILK PUDDING",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0055-khowa-nariyal-laddoo",
+    "department": "khowa",
+    "name": "NARIYAL LADDOO",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0035-khowa-parwal",
+    "department": "khowa",
+    "name": "PARWAL",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0049-khowa-peda-chota",
+    "department": "khowa",
+    "name": "PEDA CHOTA",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0038-khowa-punjabi-barfi",
+    "department": "khowa",
+    "name": "PUNJABI BARFI",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0151-khowa-sada-ladoo-1-2kg",
+    "department": "khowa",
+    "name": "SADA LADOO- 1/2KG",
+    "unit": "pcs",
+    "price": 160,
+    "updatedAt": "2026-05-08T22:47:38.931Z"
+  },
+  {
+    "id": "p0150-khowa-sada-ladoo-1kg",
+    "department": "khowa",
+    "name": "SADA LADOO- 1KG",
+    "unit": "pcs",
+    "price": 320,
+    "updatedAt": "2026-05-08T22:47:38.931Z"
+  },
+  {
+    "id": "p0031-lalmohan-gulab-jamun",
+    "department": "lalmohan",
+    "name": "GULAB JAMUN",
+    "unit": "pcs",
+    "price": 30,
+    "updatedAt": "2026-05-08T22:47:38.931Z"
+  },
+  {
+    "id": "p0024-lalmohan-kala-jamun",
+    "department": "lalmohan",
+    "name": "KALA JAMUN",
+    "unit": "kg",
+    "price": 640
+  },
+  {
+    "id": "p0057-lalmohan-karachi-halwa",
+    "department": "lalmohan",
+    "name": "KARACHI HALWA",
+    "unit": "kg",
+    "price": 680
+  },
+  {
+    "id": "p0056-lalmohan-pinni-laddoo",
+    "department": "lalmohan",
+    "name": "PINNI LADDOO",
+    "unit": "kg",
+    "price": 740
+  },
+  {
+    "id": "p0130-namkeen-achari-matri",
+    "department": "namkeen",
+    "name": "ACHARI MATRI",
+    "unit": "kg",
+    "price": 400
+  },
+  {
+    "id": "p0139-namkeen-badhshhi-mix",
+    "department": "namkeen",
+    "name": "BADHSHHI MIX",
+    "unit": "kg",
+    "price": 400
+  },
+  {
+    "id": "p0137-namkeen-besan-chips",
+    "department": "namkeen",
+    "name": "BESAN CHIPS",
+    "unit": "kg",
+    "price": 400
+  },
+  {
+    "id": "p0140-namkeen-bharkwadi",
+    "department": "namkeen",
+    "name": "BHARKWADI",
+    "unit": "kg",
+    "price": 500
+  },
+  {
+    "id": "p0136-namkeen-bhujika",
+    "department": "namkeen",
+    "name": "BHUJIKA",
+    "unit": "kg",
+    "price": 400
+  },
+  {
+    "id": "p0113-namkeen-dry-fruits-samosi",
+    "department": "namkeen",
+    "name": "DRY FRUITS SAMOSI",
+    "unit": "kg",
+    "price": 800
+  },
+  {
+    "id": "p0134-namkeen-gathiya",
+    "department": "namkeen",
+    "name": "GATHIYA",
+    "unit": "kg",
+    "price": 400
+  },
+  {
+    "id": "p0114-namkeen-ghee-samosi",
+    "department": "namkeen",
+    "name": "GHEE SAMOSI",
+    "unit": "kg",
+    "price": 600
+  },
+  {
+    "id": "p0124-namkeen-kaju-masala",
+    "department": "namkeen",
+    "name": "KAJU MASALA-",
+    "unit": "kg",
+    "price": 2200
+  },
+  {
+    "id": "p0119-namkeen-kaju-mixture-ghee",
+    "department": "namkeen",
+    "name": "KAJU MIXTURE GHEE",
+    "unit": "kg",
+    "price": 600
+  },
+  {
+    "id": "p0123-namkeen-kaju-salted",
+    "department": "namkeen",
+    "name": "KAJU SALTED -",
+    "unit": "kg",
+    "price": 2200
+  },
+  {
+    "id": "p0169-namkeen-khashtha",
+    "department": "namkeen",
+    "name": "khashtha",
+    "unit": "pcs",
+    "price": 45,
+    "updatedAt": "2026-05-08T22:47:38.931Z"
+  },
+  {
+    "id": "p0129-namkeen-masala-mathri",
+    "department": "namkeen",
+    "name": "MASALA MATHRI",
+    "unit": "kg",
+    "price": 400
+  },
+  {
+    "id": "p0138-namkeen-masoor-mix",
+    "department": "namkeen",
+    "name": "MASOOR MIX",
+    "unit": "kg",
+    "price": 400
+  },
+  {
+    "id": "p0115-namkeen-mathri-ghee",
+    "department": "namkeen",
+    "name": "MATHRI GHEE",
+    "unit": "kg",
+    "price": 600
+  },
+  {
+    "id": "p0116-namkeen-methi-mathri-ghee",
+    "department": "namkeen",
+    "name": "METHI MATHRI GHEE",
+    "unit": "kg",
+    "price": 600
+  },
+  {
+    "id": "p0131-namkeen-methi-matri",
+    "department": "namkeen",
+    "name": "METHI MATRI",
+    "unit": "kg",
+    "price": 400
+  },
+  {
+    "id": "p0117-namkeen-mini-kachori-ghee",
+    "department": "namkeen",
+    "name": "MINI KACHORI GHEE",
+    "unit": "kg",
+    "price": 600
+  },
+  {
+    "id": "p0168-namkeen-mini-samosi",
+    "department": "namkeen",
+    "name": "mini samosi",
+    "unit": "pcs",
+    "price": 8,
+    "updatedAt": "2026-05-08T22:47:38.931Z"
+  },
+  {
+    "id": "p0132-namkeen-namak-para",
+    "department": "namkeen",
+    "name": "NAMAK PARA",
+    "unit": "kg",
+    "price": 400
+  },
+  {
+    "id": "p0118-namkeen-namak-para-ghee",
+    "department": "namkeen",
+    "name": "NAMAK PARA GHEE",
+    "unit": "kg",
+    "price": 600
+  },
+  {
+    "id": "p0120-namkeen-pudeena-mixture-ghee",
+    "department": "namkeen",
+    "name": "PUDEENA MIXTURE GHEE",
+    "unit": "kg",
+    "price": 600
+  },
+  {
+    "id": "p0135-namkeen-sada-sev",
+    "department": "namkeen",
+    "name": "SADA SEV",
+    "unit": "kg",
+    "price": 400
+  },
+  {
+    "id": "p0167-namkeen-samosa",
+    "department": "namkeen",
+    "name": "samosa",
+    "unit": "pcs",
+    "price": 15,
+    "updatedAt": "2026-05-08T22:47:38.931Z"
+  },
+  {
+    "id": "p0128-namkeen-samosi",
+    "department": "namkeen",
+    "name": "SAMOSI",
+    "unit": "kg",
+    "price": 400
+  },
+  {
+    "id": "p0133-namkeen-sewra",
+    "department": "namkeen",
+    "name": "SEWRA",
+    "unit": "kg",
+    "price": 400
+  },
+  {
+    "id": "p0157-packing-fancy-box",
+    "department": "packing",
+    "name": "FANCY BOX",
+    "unit": "pcs",
+    "price": 750,
+    "updatedAt": "2026-05-08T22:47:38.931Z"
+  },
+  {
+    "id": "p0158-packing-special-box",
+    "department": "packing",
+    "name": "SPECIAL BOX",
+    "unit": "pcs",
+    "price": 900,
+    "updatedAt": "2026-05-08T22:47:38.931Z"
+  },
+  {
+    "id": "p0184-shop-store-badam",
+    "department": "shop store",
+    "name": "badam",
+    "unit": "kg",
+    "price": 750
+  },
+  {
+    "id": "p0172-shop-store-dahi-shop",
+    "department": "shop store",
+    "name": "dahi (shop)",
+    "unit": "kg",
+    "price": 80
+  },
+  {
+    "id": "p0185-shop-store-desi-ghee-tin",
+    "department": "shop store",
+    "name": "desi ghee (tin)",
+    "unit": "pcs",
+    "price": 9300,
+    "updatedAt": "2026-05-08T22:47:38.931Z"
+  },
+  {
+    "id": "p0183-shop-store-kaju-saboot",
+    "department": "shop store",
+    "name": "kaju saboot",
+    "unit": "kg",
+    "price": 1100
+  },
+  {
+    "id": "p0182-shop-store-kaju-tudka",
+    "department": "shop store",
+    "name": "kaju tudka",
+    "unit": "kg",
+    "price": 700
+  },
+  {
+    "id": "p0189-shop-store-khowa-shop",
+    "department": "shop store",
+    "name": "khowa shop",
+    "unit": "kg",
+    "price": 350
+  },
+  {
+    "id": "p0187-shop-store-milk-shop",
+    "department": "shop store",
+    "name": "milk shop",
+    "unit": "kg",
+    "price": 70
+  },
+  {
+    "id": "p0188-shop-store-rabri-lassi",
+    "department": "shop store",
+    "name": "rabri (lassi)",
+    "unit": "kg",
+    "price": 600
+  },
+  {
+    "id": "p0186-shop-store-refined-tin",
+    "department": "shop store",
+    "name": "refined (tin)",
+    "unit": "pcs",
+    "price": 2500,
+    "updatedAt": "2026-05-08T22:47:38.931Z"
+  },
+  {
+    "id": "p0190-shop-store-sugar",
+    "department": "shop store",
+    "name": "sugar",
+    "unit": "kg",
+    "price": 50
+  }
+]

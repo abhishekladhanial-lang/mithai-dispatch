@@ -1,0 +1,15 @@
+{
+  "name": "Mithai Dispatch",
+  "short_name": "Dispatch",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8faf7",
+  "theme_color": "#14532d",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
