@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: mithai-dispatch
+    runtime: docker
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 8767
+      - key: DATA_DIR
+        value: /var/lib/mithai-dispatch/data
+      - key: BACKUP_DIR
+        value: /var/backups/mithai-dispatch
+      - key: SESSION_TTL_MS
+        value: "28800000"
+      - key: MAX_BODY_BYTES
+        value: "6291456"
+      - key: LOGIN_MAX_ATTEMPTS
+        value: "8"
+      - key: BACKUP_RETENTION
+        value: "100"
+    healthCheckPath: /api/health

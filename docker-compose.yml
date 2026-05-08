@@ -1,0 +1,14 @@
+services:
+  mithai-dispatch:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:8767:8767"
+    volumes:
+      - mithai_data:/var/lib/mithai-dispatch/data
+      - mithai_backups:/var/backups/mithai-dispatch
+
+volumes:
+  mithai_data:
+  mithai_backups:
