@@ -13,7 +13,7 @@ services:
       - key: DATA_DIR
         value: /var/lib/mithai-dispatch/data
       - key: BACKUP_DIR
-        value: /var/backups/mithai-dispatch
+        value: /var/lib/mithai-dispatch/backups
       - key: SESSION_TTL_MS
         value: "28800000"
       - key: MAX_BODY_BYTES

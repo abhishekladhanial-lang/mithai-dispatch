@@ -7,12 +7,14 @@ const crypto = require("crypto");
 const PORT = Number(process.env.PORT || 8766);
 const HOST = process.env.HOST || "127.0.0.1";
 const ROOT = __dirname;
-const PUBLIC_DIR = path.join(ROOT, "public");
+const PUBLIC_DIR = fs.existsSync(path.join(ROOT, "public", "index.html")) ? path.join(ROOT, "public") : ROOT;
 const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(ROOT, "data");
 const BACKUP_DIR = process.env.BACKUP_DIR ? path.resolve(process.env.BACKUP_DIR) : path.join(ROOT, "backups");
 const DB_PATH = path.join(DATA_DIR, "db.json");
 const PRODUCT_PATH = process.env.PRODUCT_PATH ? path.resolve(process.env.PRODUCT_PATH) : path.join(DATA_DIR, "products.json");
-const SEED_PRODUCT_PATH = path.join(ROOT, "data", "products.json");
+const SEED_PRODUCT_PATH = fs.existsSync(path.join(ROOT, "data", "products.json"))
+  ? path.join(ROOT, "data", "products.json")
+  : path.join(ROOT, "products.json");
 const SESSION_TTL_MS = Number(process.env.SESSION_TTL_MS || 8 * 60 * 60 * 1000);
 const MAX_BODY_BYTES = Number(process.env.MAX_BODY_BYTES || 6 * 1024 * 1024);
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
