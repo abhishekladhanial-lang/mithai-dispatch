@@ -5,7 +5,7 @@ WORKDIR /app
 
 COPY package.json ./
 COPY server.js ./
-COPY public ./public
+COPY index.html app.js styles.css icon.svg manifest.webmanifest service-worker.js ./
 COPY products.json ./products.json
 
 RUN mkdir -p /var/lib/mithai-dispatch/data /var/lib/mithai-dispatch/backups \
