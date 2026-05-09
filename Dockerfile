@@ -6,12 +6,12 @@ WORKDIR /app
 COPY package.json ./
 COPY server.js ./
 COPY public ./public
-COPY data/products.json ./data/products.json
+COPY products.json ./products.json
 
-RUN mkdir -p /var/lib/mithai-dispatch/data /var/backups/mithai-dispatch \
+RUN mkdir -p /var/lib/mithai-dispatch/data /var/lib/mithai-dispatch/backups \
   && addgroup -S app \
   && adduser -S app -G app \
-  && chown -R app:app /app /var/lib/mithai-dispatch /var/backups/mithai-dispatch
+  && chown -R app:app /app /var/lib/mithai-dispatch
 
 USER app
 EXPOSE 8767
