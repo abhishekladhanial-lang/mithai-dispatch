@@ -436,27 +436,32 @@ function outletOptions(selected = "") {
 
 function renderDemand(view) {
   const pending = state.data.demands.filter((d) => d.status === "pending");
+  const departmentOptions = state.data.departments.map((d) => `<option value="${esc(d)}">${esc(d)}</option>`).join("");
   view.innerHTML = `
     <div class="requirement-hero">
       <div>
         <h2>Raise Challan</h2>
-        <p>Select department, choose SKU, enter required quantity, then submit.</p>
+        <p>Enter quantities across departments in one challan. Your entries stay saved while you move around.</p>
       </div>
       <button class="ghost no-print" type="button" data-window-print>Print</button>
     </div>
     <div class="grid">
-      <div class="span-5 panel">
+      <div class="span-4 panel">
         <div class="section-head"><h3>Pending Challans</h3><span class="badge warn">${pending.length} pending</span></div>
         ${miniDemandList(pending.slice(0, 12))}
       </div>
-      <form class="span-7 panel stack" data-demand-form>
+      <form class="span-8 panel stack" data-demand-form>
         <h3>Requirement Entry</h3>
         ${state.user.role === "admin" ? `<label>Outlet <select name="outletId">${outletOptions()}</select></label>` : ""}
+        <div class="notice">Tip: type quantities in one department, switch to the next department, and continue. The challan is submitted only when you press Submit Challan.</div>
+        <div class="department-strip no-print" data-demand-dept-buttons>
+          ${state.data.departments.map((d) => `<button class="ghost" type="button" data-demand-jump="${esc(d)}">${esc(d)} <span class="badge" data-demand-dept-count="${esc(d)}">0</span></button>`).join("")}
+        </div>
         <div class="quick-entry">
           <label>Department
             <select data-demand-dept>
               <option value="">Select department</option>
-              ${state.data.departments.map((d) => `<option value="${esc(d)}">${esc(d)}</option>`).join("")}
+              ${departmentOptions}
             </select>
           </label>
           <label>SKU
@@ -471,8 +476,11 @@ function renderDemand(view) {
         </div>
         <div class="quick-sheet no-print">
           <div class="section-head">
-            <div><h3>Fast Add From Department</h3><p class="muted">Enter quantities beside many SKUs, then add all filled rows at once.</p></div>
-            <button class="ghost" type="button" data-add-visible-demand>+ Add Filled Rows</button>
+            <div><h3>Department Sheet</h3><p class="muted">Enter required quantity beside each SKU. Values are auto-saved in this challan draft.</p></div>
+            <div class="actions">
+              <input class="compact-input" data-demand-search placeholder="Search SKU">
+              <button class="ghost" type="button" data-clear-visible-demand>Clear This Department</button>
+            </div>
           </div>
           <div class="bulk-wrap compact"><table class="bulk-table"><thead><tr><th>SKU</th><th>Unit</th><th>Required</th></tr></thead><tbody data-demand-fast-rows><tr><td colspan="3">Select a department to show SKUs.</td></tr></tbody></table></div>
         </div>
@@ -495,6 +503,7 @@ function renderDemand(view) {
   view.querySelector("[data-window-print]").addEventListener("click", () => window.print());
   wirePhoto(form);
   const selected = new Map();
+  const draft = new Map();
   const dept = form.querySelector("[data-demand-dept]");
   const sku = form.querySelector("[data-demand-sku]");
   const qtyInput = form.querySelector("[data-demand-qty]");
@@ -502,19 +511,50 @@ function renderDemand(view) {
   const tbody = form.querySelector("[data-demand-items]");
   const count = form.querySelector("[data-demand-count]");
   const fastRows = form.querySelector("[data-demand-fast-rows]");
+  const search = form.querySelector("[data-demand-search]");
+  const getAmount = (productId) => {
+    const item = draft.get(productId) || selected.get(productId);
+    return Number(item?.qty || 0);
+  };
+  const setAmount = (productId, amount) => {
+    if (amount > 0) {
+      const next = { productId, qty: amount };
+      draft.set(productId, next);
+      selected.set(productId, next);
+    } else {
+      draft.delete(productId);
+      selected.delete(productId);
+    }
+  };
+  const allItems = () => {
+    const merged = new Map([...selected, ...draft]);
+    return [...merged.values()].filter((item) => Number(item.qty) > 0);
+  };
+  const updateDepartmentCounts = () => {
+    for (const button of form.querySelectorAll("[data-demand-jump]")) {
+      const department = button.dataset.demandJump;
+      const departmentItems = state.data.products.filter((p) => p.department === department && getAmount(p.id) > 0);
+      const badge = button.querySelector("[data-demand-dept-count]");
+      if (badge) badge.textContent = departmentItems.length;
+      button.classList.toggle("active", dept.value === department);
+      button.classList.toggle("has-count", departmentItems.length > 0);
+    }
+  };
   const refreshSkus = () => {
-    const products = state.data.products.filter((p) => p.department === dept.value);
+    const term = search.value.trim().toLowerCase();
+    const products = state.data.products.filter((p) => p.department === dept.value && (!term || p.name.toLowerCase().includes(term)));
     sku.innerHTML = `<option value="">Select SKU</option>${products.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join("")}`;
     fastRows.innerHTML = products.length ? products.map((p) => `
       <tr data-fast-product="${p.id}">
         <td><strong>${esc(p.name)}</strong></td>
         <td><span class="badge">${p.unit || "kg"}</span></td>
-        <td><input name="fastQty" type="number" min="0" step="${stepOf(p.id)}" inputmode="${inputModeOf(p.id)}" placeholder="Qty"></td>
+        <td><input name="fastQty" type="number" min="0" step="${stepOf(p.id)}" inputmode="${inputModeOf(p.id)}" placeholder="Qty" value="${getAmount(p.id) || ""}"></td>
       </tr>
-    `).join("") : `<tr><td colspan="3">Select a department to show SKUs.</td></tr>`;
+    `).join("") : `<tr><td colspan="3">${dept.value ? "No SKU found in this department." : "Select a department to show SKUs."}</td></tr>`;
+    updateDepartmentCounts();
   };
   const renderSelected = () => {
-    const rows = [...selected.values()];
+    const rows = allItems().sort((a, b) => product(a.productId).department.localeCompare(product(b.productId).department) || product(a.productId).name.localeCompare(product(b.productId).name));
     count.textContent = `${rows.length} item${rows.length === 1 ? "" : "s"} selected`;
     tbody.innerHTML = rows.length ? rows.map((item) => {
       const p = product(item.productId);
@@ -527,8 +567,17 @@ function renderDemand(view) {
         </tr>
       `;
     }).join("") : `<tr><td colspan="4">No items added.</td></tr>`;
+    updateDepartmentCounts();
   };
   dept.addEventListener("input", refreshSkus);
+  search.addEventListener("input", refreshSkus);
+  form.querySelector("[data-demand-dept-buttons]").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-demand-jump]");
+    if (!button) return;
+    dept.value = button.dataset.demandJump;
+    search.value = "";
+    refreshSkus();
+  });
   sku.addEventListener("input", () => {
     const unit = unitOf(sku.value);
     qtyInput.step = stepOf(sku.value);
@@ -547,44 +596,57 @@ function renderDemand(view) {
       toast("Piece SKUs must use whole numbers");
       return;
     }
-    selected.set(productId, { productId, qty: amount });
+    setAmount(productId, amount);
     qtyInput.value = "";
+    refreshSkus();
     renderSelected();
   });
-  form.querySelector("[data-add-visible-demand]").addEventListener("click", () => {
-    let added = 0;
-    for (const row of fastRows.querySelectorAll("[data-fast-product]")) {
-      const productId = row.dataset.fastProduct;
-      const amount = Number(row.querySelector("[name=fastQty]").value);
-      if (!(amount > 0)) continue;
-      if (unitOf(productId) === "pcs" && !Number.isInteger(amount)) {
-        toast(`${product(productId).name} must be whole pieces`);
-        return;
-      }
-      selected.set(productId, { productId, qty: amount });
-      row.querySelector("[name=fastQty]").value = "";
-      added += 1;
+  fastRows.addEventListener("input", (event) => {
+    const input = event.target.closest("[name=fastQty]");
+    if (!input) return;
+    const productId = input.closest("[data-fast-product]").dataset.fastProduct;
+    const amount = Number(input.value);
+    if (unitOf(productId) === "pcs" && input.value && !Number.isInteger(amount)) {
+      toast(`${product(productId).name} must be whole pieces`);
+      input.value = Math.floor(amount || 0) || "";
+      setAmount(productId, Number(input.value || 0));
+    } else {
+      setAmount(productId, amount);
     }
     renderSelected();
-    toast(added ? `${added} item${added === 1 ? "" : "s"} added` : "Enter quantity in at least one row");
+  });
+  form.querySelector("[data-clear-visible-demand]").addEventListener("click", () => {
+    let cleared = 0;
+    for (const row of fastRows.querySelectorAll("[data-fast-product]")) {
+      const productId = row.dataset.fastProduct;
+      if (getAmount(productId) > 0) cleared += 1;
+      setAmount(productId, 0);
+    }
+    refreshSkus();
+    renderSelected();
+    toast(cleared ? `Cleared ${cleared} item${cleared === 1 ? "" : "s"}` : "No quantities in this department");
   });
   tbody.addEventListener("input", (event) => {
     const input = event.target.closest("[name=selectedQty]");
     if (!input) return;
     const row = input.closest("[data-selected-product]");
-    const item = selected.get(row.dataset.selectedProduct);
-    if (item) item.qty = Number(input.value);
+    const amount = Number(input.value);
+    setAmount(row.dataset.selectedProduct, amount);
+    refreshSkus();
+    if (amount <= 0) renderSelected();
+    else updateDepartmentCounts();
   });
   tbody.addEventListener("click", (event) => {
     const button = event.target.closest("[data-remove-selected]");
     if (!button) return;
-    selected.delete(button.closest("[data-selected-product]").dataset.selectedProduct);
+    setAmount(button.closest("[data-selected-product]").dataset.selectedProduct, 0);
+    refreshSkus();
     renderSelected();
   });
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     try {
-      const items = [...selected.values()].filter((item) => item.qty > 0);
+      const items = allItems();
       const body = {
         outletId: form.outletId?.value,
         items,

@@ -421,6 +421,34 @@ textarea {
   background: #fbfcf8;
 }
 
+.department-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 0 8px;
+}
+
+.department-strip button {
+  white-space: nowrap;
+}
+
+.department-strip button.active {
+  border-color: var(--green);
+  background: #e8f3ef;
+  color: var(--green);
+}
+
+.department-strip button.has-count {
+  font-weight: 800;
+}
+
+.compact-input {
+  width: min(220px, 100%);
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
 .order-card {
   display: grid;
   gap: 12px;
