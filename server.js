@@ -67,6 +67,12 @@ function businessStamp() {
   return businessDate().replace(/-/g, "");
 }
 
+function addDays(dateText, days) {
+  const date = dateText ? new Date(`${dateText}T00:00:00`) : new Date();
+  date.setDate(date.getDate() + days);
+  return businessDate(date);
+}
+
 function id(prefix) {
   return `${prefix}_${Date.now().toString(36)}_${crypto.randomBytes(4).toString("hex")}`;
 }
@@ -127,7 +133,7 @@ async function seedDb() {
   }
   const products = await readJson(PRODUCT_PATH, []);
   const existing = await readJson(DB_PATH, null);
-  if (existing) return existing;
+  if (existing) return normalizeDb(existing);
   const db = {
     meta: { createdAt: nowIso(), lastBackupAt: null },
     outlets: [
@@ -142,6 +148,7 @@ async function seedDb() {
     ],
     demands: [],
     dispatches: [],
+    orders: [],
     returns: [],
     audit: [
       { id: id("audit"), at: nowIso(), actor: "system", action: "seed", entity: "database", note: `Seeded ${products.length} products` }
@@ -149,6 +156,18 @@ async function seedDb() {
   };
   await writeJson(DB_PATH, db);
   await backupDb(db);
+  return db;
+}
+
+function normalizeDb(db) {
+  db.meta ||= { createdAt: nowIso(), lastBackupAt: null };
+  db.outlets ||= [];
+  db.users ||= [];
+  db.demands ||= [];
+  db.dispatches ||= [];
+  db.orders ||= [];
+  db.returns ||= [];
+  db.audit ||= [];
   return db;
 }
 
@@ -164,6 +183,37 @@ function sanitizeProducts(products, role) {
 
 function canSeeOutlet(user, outletId) {
   return user.role !== "outlet" || user.outletId === outletId;
+}
+
+function visibleOrders(db, user) {
+  return (db.orders || []).filter((order) => canSeeOutlet(user, order.outletId));
+}
+
+function buildAlerts(db, user) {
+  const alerts = [];
+  const todayText = businessDate();
+  const tomorrowText = addDays(todayText, 1);
+  const add = (type, entityId, title, text, tone = "warn", at = nowIso()) => {
+    alerts.push({ id: `${type}:${entityId}`, type, entityId, title, text, tone, at });
+  };
+  if (user.role !== "outlet") {
+    for (const demand of db.demands.filter((d) => d.status === "pending").slice(0, 20)) {
+      const outletName = db.outlets.find((o) => o.id === demand.outletId)?.name || demand.outletId;
+      add("demand", demand.id, `New challan ${demand.challanNo}`, `${outletName} requested ${demand.items.length} SKU${demand.items.length === 1 ? "" : "s"}`, "warn", demand.createdAt);
+    }
+    for (const order of (db.orders || []).filter((o) => ["booked", "preparing"].includes(o.status)).slice(0, 25)) {
+      const outletName = db.outlets.find((o) => o.id === order.outletId)?.name || order.outletId;
+      const lead = order.orderDate === tomorrowText ? "Tomorrow order" : order.orderDate === todayText ? "Today order" : "Future order";
+      add("order", order.id, `${lead} ${order.orderNo}`, `${outletName} · ${order.customerName || "Customer"} · ${order.items.length || "photo"} item${order.items.length === 1 ? "" : "s"}`, order.orderDate <= tomorrowText ? "bad" : "warn", order.createdAt);
+    }
+  }
+  if (user.role !== "factory") {
+    for (const dispatch of db.dispatches.filter((d) => d.status === "pending_verification" && canSeeOutlet(user, d.outletId)).slice(0, 20)) {
+      const outletName = db.outlets.find((o) => o.id === dispatch.outletId)?.name || dispatch.outletId;
+      add("dispatch", dispatch.id, `Dispatch received ${dispatch.challanNo}`, `${outletName} has ${dispatch.items.length} item${dispatch.items.length === 1 ? "" : "s"} waiting for verification`, "bad", dispatch.createdAt);
+    }
+  }
+  return alerts.sort((a, b) => String(b.at).localeCompare(String(a.at)));
 }
 
 function pickDemandItemsForDispatch(demand, dispatchItems) {
@@ -338,6 +388,36 @@ function validateItems(products, items) {
   return null;
 }
 
+function cleanOrderInput(db, products, body, user) {
+  const outletId = user.role === "outlet" ? user.outletId : String(body.outletId || "");
+  if (!db.outlets.some((o) => o.id === outletId)) return { error: "Invalid outlet" };
+  const orderDate = String(body.orderDate || "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(orderDate)) return { error: "Select delivery/order date" };
+  if (orderDate < businessDate()) return { error: "Order date cannot be in the past" };
+  const items = Array.isArray(body.items) ? body.items.filter((item) => item.productId && Number(item.qty) > 0) : [];
+  const photo = body.photo || null;
+  if (!items.length && !photo) return { error: "Add SKU items or upload handwritten order slip photo" };
+  const itemError = items.length ? validateItems(products, items) : null;
+  if (itemError) return { error: itemError };
+  const photoError = validatePhoto(photo);
+  if (photoError) return { error: photoError };
+  const productMap = new Map(products.map((p) => [p.id, p]));
+  return {
+    order: {
+      outletId,
+      orderDate,
+      customerName: String(body.customerName || "").trim(),
+      customerPhone: String(body.customerPhone || "").trim(),
+      note: String(body.note || "").trim(),
+      photo,
+      items: items.map((item) => {
+        const product = productMap.get(item.productId);
+        return { productId: item.productId, qty: Number(item.qty), unit: product?.unit || "kg" };
+      })
+    }
+  };
+}
+
 function cleanProductInput(body) {
   const department = String(body.department || "").trim().replace(/\s+/g, " ").toLowerCase();
   const name = String(body.name || "").trim().replace(/\s+/g, " ");
@@ -459,6 +539,7 @@ async function handleApi(req, res, db, products) {
   if (route === "GET /api/bootstrap") {
     const demands = db.demands.filter((d) => canSeeOutlet(user, d.outletId));
     const dispatches = db.dispatches.filter((d) => canSeeOutlet(user, d.outletId));
+    const orders = visibleOrders(db, user);
     return send(res, 200, {
       user: publicUser(user),
       outlets: user.role === "outlet" ? db.outlets.filter((o) => o.id === user.outletId) : db.outlets,
@@ -467,8 +548,40 @@ async function handleApi(req, res, db, products) {
       departments: [...new Set(products.map((p) => p.department))].sort(),
       demands,
       dispatches: dispatches.map((d) => ({ ...d, totals: computeDispatch(d) })),
+      orders,
+      alerts: buildAlerts(db, user),
       audit: user.role === "admin" ? db.audit.slice(0, 250) : []
     });
+  }
+
+  if (route === "POST /api/orders") {
+    if (!["admin", "outlet"].includes(user.role)) return fail(res, 403, "Only outlets or admin can book customer orders");
+    const body = await getBody(req);
+    const { order, error } = cleanOrderInput(db, products, body, user);
+    if (error) return fail(res, 400, error);
+    order.id = id("order");
+    order.orderNo = `ORD-${order.orderDate.replace(/-/g, "")}-${(db.orders || []).length + 1}`;
+    order.status = "booked";
+    order.createdAt = nowIso();
+    order.createdBy = user.username;
+    db.orders.unshift(order);
+    await mutate(db, user, "create", "order", order.id, `Booked ${order.orderNo} for ${order.orderDate}`);
+    return send(res, 201, order);
+  }
+
+  const orderStatusMatch = url.pathname.match(/^\/api\/orders\/([^/]+)$/);
+  if (req.method === "PATCH" && orderStatusMatch) {
+    const order = (db.orders || []).find((o) => o.id === orderStatusMatch[1]);
+    if (!order) return fail(res, 404, "Order not found");
+    if (user.role === "outlet" && order.outletId !== user.outletId) return fail(res, 403, "Not allowed");
+    const body = await getBody(req);
+    const allowed = user.role === "factory" ? ["preparing", "dispatched"] : ["booked", "preparing", "dispatched", "completed", "cancelled"];
+    if (!allowed.includes(body.status)) return fail(res, 400, "Invalid order status");
+    order.status = body.status;
+    order.updatedAt = nowIso();
+    order.updatedBy = user.username;
+    await mutate(db, user, "update", "order", order.id, `Marked ${order.orderNo} ${order.status}`);
+    return send(res, 200, order);
   }
 
   if (route === "POST /api/change-password") {
@@ -745,6 +858,41 @@ async function handleApi(req, res, db, products) {
       fastMoving: movement.slice(0, 10),
       slowMoving: movement.slice(-10).reverse()
     });
+  }
+
+  if (route === "POST /api/assistant") {
+    const body = await getBody(req);
+    const question = String(body.question || "").toLowerCase();
+    const visibleDispatches = db.dispatches.filter((d) => canSeeOutlet(user, d.outletId));
+    const visibleDemands = db.demands.filter((d) => canSeeOutlet(user, d.outletId));
+    const visibleOrderRows = visibleOrders(db, user);
+    const pendingDemands = visibleDemands.filter((d) => d.status === "pending");
+    const pendingDispatches = visibleDispatches.filter((d) => d.status === "pending_verification");
+    const todayText = businessDate();
+    const tomorrowText = addDays(todayText, 1);
+    const todayOrders = visibleOrderRows.filter((o) => o.orderDate === todayText && !["completed", "cancelled"].includes(o.status));
+    const tomorrowOrders = visibleOrderRows.filter((o) => o.orderDate === tomorrowText && !["completed", "cancelled"].includes(o.status));
+    let answer = "";
+    if (question.includes("tomorrow") || question.includes("next day")) {
+      answer = tomorrowOrders.length
+        ? `Tomorrow has ${tomorrowOrders.length} open customer order(s): ${tomorrowOrders.slice(0, 8).map((o) => `${o.orderNo} for ${db.outlets.find((out) => out.id === o.outletId)?.name || o.outletId}`).join("; ")}.`
+        : "No open customer orders are booked for tomorrow.";
+    } else if (question.includes("order")) {
+      answer = `There are ${visibleOrderRows.filter((o) => !["completed", "cancelled"].includes(o.status)).length} open customer order(s), including ${todayOrders.length} for today and ${tomorrowOrders.length} for tomorrow.`;
+    } else if (question.includes("dispatch") || question.includes("receive")) {
+      answer = `There are ${pendingDispatches.length} dispatch(es) waiting for outlet receiving verification. Today has ${visibleDispatches.filter((d) => businessDate(d.createdAt) === todayText).length} dispatch(es).`;
+    } else if (question.includes("challan") || question.includes("demand")) {
+      answer = `There are ${pendingDemands.length} pending challan demand(s). Factory should clear the oldest pending demand first.`;
+    } else if (question.includes("shortage") || question.includes("return")) {
+      const shortages = visibleDispatches.flatMap((d) => (d.items || []).map((item) => ({
+        shortage: item.receivedQty == null ? 0 : Math.max(0, Number(item.qty || 0) - Number(item.receivedQty || 0)),
+        returned: Number(item.damagedQty || 0) + Number(item.excessReturnQty || 0)
+      })));
+      answer = `Recorded shortage quantity is ${shortages.reduce((sum, row) => sum + row.shortage, 0)} units and returned quantity is ${shortages.reduce((sum, row) => sum + row.returned, 0)} units in visible dispatches.`;
+    } else {
+      answer = `Current status: ${pendingDemands.length} pending challan(s), ${pendingDispatches.length} dispatch(es) waiting for receiving, ${todayOrders.length} customer order(s) today, and ${tomorrowOrders.length} customer order(s) tomorrow. Ask me about tomorrow orders, shortages, dispatches, challans, or pending work.`;
+    }
+    return send(res, 200, { answer });
   }
 
   if (route === "GET /api/exports") {

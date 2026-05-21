@@ -1,7 +1,9 @@
 const state = {
   user: null,
   data: null,
-  tab: "dashboard"
+  tab: "dashboard",
+  poller: null,
+  knownAlerts: new Set(JSON.parse(localStorage.getItem("mithai_seen_alerts") || "[]"))
 };
 
 const app = document.querySelector("#app");
@@ -59,6 +61,56 @@ function toast(message) {
   setTimeout(() => el.remove(), 3200);
 }
 
+function alertBeep() {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.value = 880;
+    gain.gain.value = 0.04;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    setTimeout(() => { osc.stop(); ctx.close(); }, 180);
+  } catch {}
+}
+
+async function requestNotifyPermission() {
+  if (!("Notification" in window)) {
+    toast("Browser notification is not supported here");
+    return;
+  }
+  const permission = await Notification.requestPermission();
+  toast(permission === "granted" ? "Alerts enabled" : "Alerts will show inside the app");
+}
+
+function showLiveAlert(alert) {
+  toast(alert.title);
+  alertBeep();
+  if ("Notification" in window && Notification.permission === "granted") {
+    new Notification(alert.title, { body: alert.text, tag: alert.id, icon: "/icon.svg" });
+  }
+}
+
+async function askAssistant(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const question = form.question.value.trim();
+  if (!question) return;
+  const log = document.querySelector("[data-ai-log]");
+  log.insertAdjacentHTML("beforeend", `<div class="chat-line user"><strong>You</strong><p>${esc(question)}</p></div>`);
+  form.question.value = "";
+  try {
+    const response = await api("/api/assistant", { method: "POST", body: JSON.stringify({ question }) });
+    log.insertAdjacentHTML("beforeend", `<div class="chat-line bot"><strong>App</strong><p>${esc(response.answer)}</p></div>`);
+  } catch (error) {
+    log.insertAdjacentHTML("beforeend", `<div class="chat-line bot"><strong>App</strong><p>${esc(error.message)}</p></div>`);
+  }
+  log.scrollTop = log.scrollHeight;
+}
+
 function today() {
   return localDate(new Date());
 }
@@ -100,23 +152,7 @@ function wirePhoto(root) {
 }
 
 function notificationItems() {
-  if (!state.data) return [];
-  const items = [];
-  const pendingDemands = state.data.demands.filter((d) => d.status === "pending");
-  const pendingDispatches = state.data.dispatches.filter((d) => d.status === "pending_verification");
-  if (state.user?.role !== "outlet") {
-    pendingDemands.slice(0, 8).forEach((d) => items.push({
-      title: `New demand ${d.challanNo}`,
-      text: `${outlet(d.outletId).name} requested ${d.items.length} SKU${d.items.length === 1 ? "" : "s"}`
-    }));
-  }
-  if (state.user?.role !== "factory") {
-    pendingDispatches.slice(0, 8).forEach((d) => items.push({
-      title: `Dispatch waiting ${d.challanNo}`,
-      text: `${outlet(d.outletId).name} has ${d.items.length} item${d.items.length === 1 ? "" : "s"} to verify`
-    }));
-  }
-  return items;
+  return state.data?.alerts || [];
 }
 
 function buildShell() {
@@ -125,6 +161,7 @@ function buildShell() {
     ["dashboard", "Dashboard"],
     ...(role !== "factory" ? [["demand", "Raise Challan"]] : []),
     ...(role !== "factory" ? [["bulk", "Bulk Sheet"]] : []),
+    ...(role !== "factory" ? [["orders", "Order Booking"]] : [["orders", "Orders"]]),
     ...(role !== "outlet" ? [["dispatch", "Create Dispatch"]] : []),
     ...(role !== "factory" ? [["verify", "Receive"]] : []),
     ["logs", "Logs"],
@@ -142,6 +179,8 @@ function buildShell() {
         </div>
         <div class="user-chip">
           <button class="ghost no-print" data-notifications>Alerts <span class="badge warn">${notificationItems().length}</span></button>
+          <button class="ghost no-print" data-enable-alerts>Enable Alerts</button>
+          <button class="ghost no-print" data-ai-toggle>Ask App</button>
           <span class="badge">${state.user.username}</span>
           <button class="ghost no-print" data-logout>Logout</button>
         </div>
@@ -149,6 +188,16 @@ function buildShell() {
       <div class="notify-panel hide no-print" data-notify-panel>
         <div class="section-head"><h3>Notifications</h3><button class="ghost" data-close-notify>Close</button></div>
         ${notificationItems().length ? notificationItems().map((n) => `<div class="notify-item"><strong>${n.title}</strong><p class="muted">${n.text}</p></div>`).join("") : `<p class="muted">No pending alerts.</p>`}
+      </div>
+      <div class="assistant-panel hide no-print" data-ai-panel>
+        <div class="section-head"><h3>Ask Mithai App</h3><button class="ghost" data-ai-close>Close</button></div>
+        <div class="assistant-log" data-ai-log>
+          <p class="muted">Ask about pending challans, dispatch verification, tomorrow orders, shortages, or returns.</p>
+        </div>
+        <form class="assistant-form" data-ai-form>
+          <input name="question" placeholder="Example: what orders are pending tomorrow?" autocomplete="off">
+          <button class="btn" type="submit">Ask</button>
+        </form>
       </div>
       <div class="layout">
         <nav class="tabs no-print">
@@ -160,11 +209,16 @@ function buildShell() {
   `;
   app.querySelector("[data-logout]").addEventListener("click", async () => {
     try { await api("/api/logout", { method: "POST", body: "{}" }); } catch {}
+    if (state.poller) clearInterval(state.poller);
     state.user = null;
     renderLogin();
   });
   app.querySelector("[data-notifications]").addEventListener("click", () => app.querySelector("[data-notify-panel]").classList.toggle("hide"));
+  app.querySelector("[data-enable-alerts]").addEventListener("click", requestNotifyPermission);
   app.querySelector("[data-close-notify]").addEventListener("click", () => app.querySelector("[data-notify-panel]").classList.add("hide"));
+  app.querySelector("[data-ai-toggle]").addEventListener("click", () => app.querySelector("[data-ai-panel]").classList.toggle("hide"));
+  app.querySelector("[data-ai-close]").addEventListener("click", () => app.querySelector("[data-ai-panel]").classList.add("hide"));
+  app.querySelector("[data-ai-form]").addEventListener("submit", askAssistant);
   app.querySelectorAll("[data-tab]").forEach((button) => {
     button.addEventListener("click", () => {
       state.tab = button.dataset.tab;
@@ -208,9 +262,35 @@ async function load() {
     state.data = await api("/api/bootstrap");
     state.user = state.data.user;
     buildShell();
+    startPolling();
   } catch {
     renderLogin();
   }
+}
+
+async function refreshData({ quiet = false } = {}) {
+  if (!state.user) return;
+  const next = await api("/api/bootstrap");
+  const newAlerts = (next.alerts || []).filter((alert) => !state.knownAlerts.has(alert.id));
+  state.data = next;
+  state.user = next.user;
+  newAlerts.forEach((alert) => {
+    state.knownAlerts.add(alert.id);
+    if (!quiet) showLiveAlert(alert);
+  });
+  localStorage.setItem("mithai_seen_alerts", JSON.stringify([...state.knownAlerts].slice(-200)));
+  const shell = document.querySelector(".shell");
+  const editing = document.activeElement && ["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement.tagName);
+  if (shell && !editing) {
+    buildShell();
+  }
+}
+
+function startPolling() {
+  if (state.poller) clearInterval(state.poller);
+  (state.data.alerts || []).forEach((alert) => state.knownAlerts.add(alert.id));
+  localStorage.setItem("mithai_seen_alerts", JSON.stringify([...state.knownAlerts].slice(-200)));
+  state.poller = setInterval(() => refreshData().catch(() => {}), 30000);
 }
 
 function kpi(label, value, tone = "") {
@@ -221,6 +301,8 @@ function renderDashboard(view) {
   const todayDispatches = state.data.dispatches.filter((d) => localDate(d.createdAt) === today());
   const pendingVerifications = state.data.dispatches.filter((d) => d.status === "pending_verification");
   const pendingDemands = state.data.demands.filter((d) => d.status === "pending");
+  const todaysOrders = (state.data.orders || []).filter((o) => o.orderDate === today() && !["completed", "cancelled"].includes(o.status));
+  const tomorrowOrders = (state.data.orders || []).filter((o) => o.orderDate === addDays(today(), 1) && !["completed", "cancelled"].includes(o.status));
   const sent = todayDispatches.reduce((sum, d) => sum + d.totals.sentQty, 0);
   view.innerHTML = `
     <div class="section-head">
@@ -233,6 +315,14 @@ function renderDashboard(view) {
       <div class="span-3">${kpi("Total sent", `${qty(sent)} units`)}</div>
       <div class="span-3">${kpi("Open demands", pendingDemands.length, pendingDemands.length ? "warn" : "")}</div>
       <div class="span-6 panel">
+        <div class="section-head"><h3>Customer Orders Today</h3><span class="badge ${todaysOrders.length ? "bad" : "good"}">${todaysOrders.length} open</span></div>
+        ${miniOrderList(todaysOrders.slice(0, 5))}
+      </div>
+      <div class="span-6 panel">
+        <div class="section-head"><h3>Tomorrow Prep Orders</h3><span class="badge ${tomorrowOrders.length ? "warn" : "good"}">${tomorrowOrders.length} open</span></div>
+        ${miniOrderList(tomorrowOrders.slice(0, 5))}
+      </div>
+      <div class="span-6 panel">
         <div class="section-head"><h3>Latest Demands</h3><span class="badge warn">${pendingDemands.length} pending</span></div>
         ${miniDemandList(pendingDemands.slice(0, 6))}
       </div>
@@ -243,6 +333,12 @@ function renderDashboard(view) {
     </div>
   `;
   view.querySelector("[data-refresh]").addEventListener("click", async () => { await load(); toast("Updated"); });
+}
+
+function addDays(dateText, days) {
+  const date = new Date(`${dateText}T00:00:00`);
+  date.setDate(date.getDate() + days);
+  return localDate(date);
 }
 
 function miniDemandList(rows) {
@@ -265,11 +361,22 @@ function miniDispatchList(rows) {
   `).join("")}</div>`;
 }
 
+function miniOrderList(rows) {
+  if (!rows.length) return `<p class="muted">No customer order booking for this date.</p>`;
+  return `<div class="stack">${rows.map((o) => `
+    <div>
+      <strong>${o.orderNo}</strong> <span class="muted">${outlet(o.outletId).name} · ${o.status}</span><br>
+      <span class="muted">${esc(o.customerName || "Customer")} · ${o.items?.length ? o.items.map((i) => `${esc(product(i.productId).name)} ${qtyUnit(i.qty, i.productId)}`).join(", ") : "photo slip only"}</span>
+    </div>
+  `).join("")}</div>`;
+}
+
 function itemRowsHtml(prefix = "") {
   return `
     <div class="stack" data-lines></div>
     <div class="actions">
       <button class="ghost" type="button" data-add-line>${prefix}Add product</button>
+      <button class="ghost" type="button" data-add-five-lines>${prefix}Add 5 rows</button>
     </div>
   `;
 }
@@ -317,6 +424,9 @@ function collectItems(root) {
 
 function wireLineEditor(root) {
   root.querySelector("[data-add-line]").addEventListener("click", () => addLine(root));
+  root.querySelector("[data-add-five-lines]")?.addEventListener("click", () => {
+    for (let index = 0; index < 5; index += 1) addLine(root);
+  });
   if (!root.querySelector(".line-item")) addLine(root);
 }
 
@@ -359,6 +469,13 @@ function renderDemand(view) {
           </label>
           <button class="btn" type="button" data-add-demand-item>Add</button>
         </div>
+        <div class="quick-sheet no-print">
+          <div class="section-head">
+            <div><h3>Fast Add From Department</h3><p class="muted">Enter quantities beside many SKUs, then add all filled rows at once.</p></div>
+            <button class="ghost" type="button" data-add-visible-demand>+ Add Filled Rows</button>
+          </div>
+          <div class="bulk-wrap compact"><table class="bulk-table"><thead><tr><th>SKU</th><th>Unit</th><th>Required</th></tr></thead><tbody data-demand-fast-rows><tr><td colspan="3">Select a department to show SKUs.</td></tr></tbody></table></div>
+        </div>
         <div class="table-wrap">
           <table class="requirement-table">
             <thead><tr><th>Department</th><th>SKU</th><th>Required</th><th class="no-print">Action</th></tr></thead>
@@ -384,9 +501,17 @@ function renderDemand(view) {
   const qtyLabel = form.querySelector("[data-demand-qty-label]");
   const tbody = form.querySelector("[data-demand-items]");
   const count = form.querySelector("[data-demand-count]");
+  const fastRows = form.querySelector("[data-demand-fast-rows]");
   const refreshSkus = () => {
     const products = state.data.products.filter((p) => p.department === dept.value);
     sku.innerHTML = `<option value="">Select SKU</option>${products.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join("")}`;
+    fastRows.innerHTML = products.length ? products.map((p) => `
+      <tr data-fast-product="${p.id}">
+        <td><strong>${esc(p.name)}</strong></td>
+        <td><span class="badge">${p.unit || "kg"}</span></td>
+        <td><input name="fastQty" type="number" min="0" step="${stepOf(p.id)}" inputmode="${inputModeOf(p.id)}" placeholder="Qty"></td>
+      </tr>
+    `).join("") : `<tr><td colspan="3">Select a department to show SKUs.</td></tr>`;
   };
   const renderSelected = () => {
     const rows = [...selected.values()];
@@ -425,6 +550,23 @@ function renderDemand(view) {
     selected.set(productId, { productId, qty: amount });
     qtyInput.value = "";
     renderSelected();
+  });
+  form.querySelector("[data-add-visible-demand]").addEventListener("click", () => {
+    let added = 0;
+    for (const row of fastRows.querySelectorAll("[data-fast-product]")) {
+      const productId = row.dataset.fastProduct;
+      const amount = Number(row.querySelector("[name=fastQty]").value);
+      if (!(amount > 0)) continue;
+      if (unitOf(productId) === "pcs" && !Number.isInteger(amount)) {
+        toast(`${product(productId).name} must be whole pieces`);
+        return;
+      }
+      selected.set(productId, { productId, qty: amount });
+      row.querySelector("[name=fastQty]").value = "";
+      added += 1;
+    }
+    renderSelected();
+    toast(added ? `${added} item${added === 1 ? "" : "s"} added` : "Enter quantity in at least one row");
   });
   tbody.addEventListener("input", (event) => {
     const input = event.target.closest("[name=selectedQty]");
@@ -551,6 +693,125 @@ function renderBulk(view) {
     }
   });
   renderRows();
+}
+
+function renderOrders(view) {
+  const orders = [...(state.data.orders || [])].sort((a, b) => `${a.orderDate} ${b.createdAt}`.localeCompare(`${b.orderDate} ${a.createdAt}`));
+  const todayText = today();
+  const tomorrowText = addDays(todayText, 1);
+  const open = orders.filter((o) => !["completed", "cancelled"].includes(o.status));
+  const canBook = state.user.role !== "factory";
+  view.innerHTML = `
+    <div class="section-head">
+      <div><h2>Order Booking</h2><p class="muted">Book customer pre-orders for a future date, attach handwritten slips, and prepare one day earlier.</p></div>
+      <button class="ghost no-print" data-refresh-orders>Refresh</button>
+    </div>
+    <div class="grid">
+      <div class="span-3">${kpi("Today orders", open.filter((o) => o.orderDate === todayText).length)}</div>
+      <div class="span-3">${kpi("Tomorrow prep", open.filter((o) => o.orderDate === tomorrowText).length, open.some((o) => o.orderDate === tomorrowText) ? "warn" : "")}</div>
+      <div class="span-3">${kpi("Future open", open.filter((o) => o.orderDate > tomorrowText).length)}</div>
+      <div class="span-3">${kpi("Photo slips", open.filter((o) => o.photo).length)}</div>
+      ${canBook ? orderFormHtml() : ""}
+      <div class="${canBook ? "span-6" : "span-12"} panel stack">
+        <div class="section-head"><h3>Current & Future Orders</h3><span class="badge warn">${open.length} open</span></div>
+        <div class="grid no-print">
+          <label class="span-4">Date <input type="date" data-order-date-filter></label>
+          <label class="span-4">Outlet <select data-order-outlet-filter><option value="">All outlets</option>${outletOptions()}</select></label>
+          <label class="span-4">Status <select data-order-status-filter><option value="">All</option><option value="booked">Booked</option><option value="preparing">Preparing</option><option value="dispatched">Dispatched</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></label>
+        </div>
+        <div data-order-list></div>
+      </div>
+    </div>
+  `;
+  view.querySelector("[data-refresh-orders]").addEventListener("click", async () => { await refreshData({ quiet: true }); toast("Orders updated"); });
+  if (canBook) wireOrderForm(view);
+  const renderList = () => {
+    const date = view.querySelector("[data-order-date-filter]").value;
+    const outletId = view.querySelector("[data-order-outlet-filter]").value;
+    const status = view.querySelector("[data-order-status-filter]").value;
+    const filtered = orders.filter((o) => (!date || o.orderDate === date) && (!outletId || o.outletId === outletId) && (!status || o.status === status));
+    view.querySelector("[data-order-list]").innerHTML = filtered.length ? filtered.map(orderCard).join("") : `<p class="muted">No order bookings found.</p>`;
+  };
+  view.querySelectorAll("[data-order-date-filter], [data-order-outlet-filter], [data-order-status-filter]").forEach((el) => el.addEventListener("input", renderList));
+  view.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-order-status]");
+    if (!button) return;
+    try {
+      await api(`/api/orders/${button.dataset.orderId}`, { method: "PATCH", body: JSON.stringify({ status: button.dataset.orderStatus }) });
+      toast("Order status updated");
+      await load();
+      state.tab = "orders";
+    } catch (error) {
+      toast(error.message);
+    }
+  });
+  renderList();
+}
+
+function orderFormHtml() {
+  return `
+    <form class="span-6 panel stack" data-order-form>
+      <h3>Book Customer Order</h3>
+      ${state.user.role === "admin" ? `<label>Outlet <select name="outletId">${outletOptions()}</select></label>` : ""}
+      <div class="grid">
+        <label class="span-6">Delivery date <input name="orderDate" type="date" min="${today()}" value="${addDays(today(), 1)}" required></label>
+        <label class="span-6">Customer name <input name="customerName" placeholder="Customer name"></label>
+        <label class="span-6">Customer phone <input name="customerPhone" inputmode="tel" placeholder="Phone optional"></label>
+      </div>
+      <div class="notice">Add SKU quantities, upload the handwritten slip, or do both. Photo-only orders are allowed during rush.</div>
+      ${itemRowsHtml("Order ")}
+      <label>Order note <textarea name="note" placeholder="Pickup time, advance payment, packing instruction"></textarea></label>
+      ${photoInput("Upload handwritten order slip")}
+      <div class="actions"><button class="btn" type="submit">Save Order Booking</button></div>
+    </form>
+  `;
+}
+
+function wireOrderForm(view) {
+  const form = view.querySelector("[data-order-form]");
+  wireLineEditor(form);
+  wirePhoto(form);
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      const body = {
+        outletId: form.outletId?.value,
+        orderDate: form.orderDate.value,
+        customerName: form.customerName.value,
+        customerPhone: form.customerPhone.value,
+        note: form.note.value,
+        items: collectItems(form),
+        photo: form.querySelector("[data-photo-input]")?.dataset.photo || null
+      };
+      await api("/api/orders", { method: "POST", body: JSON.stringify(body) });
+      toast("Customer order booked and sent to factory");
+      state.tab = "orders";
+      await load();
+    } catch (error) {
+      toast(error.message);
+    }
+  });
+}
+
+function orderCard(order) {
+  const statusActions = state.user.role === "outlet"
+    ? [["completed", "Complete"], ["cancelled", "Cancel"]]
+    : [["preparing", "Preparing"], ["dispatched", "Dispatched"], ["completed", "Complete"], ["cancelled", "Cancel"]];
+  return `
+    <div class="order-card ${order.orderDate === addDays(today(), 1) ? "due" : ""}">
+      <div class="section-head">
+        <div>
+          <h3>${order.orderNo} · ${outlet(order.outletId).name}</h3>
+          <p class="muted">${order.orderDate} · ${esc(order.customerName || "Customer")} ${order.customerPhone ? `· ${esc(order.customerPhone)}` : ""}</p>
+        </div>
+        <span class="badge ${order.orderDate <= addDays(today(), 1) && !["completed", "cancelled"].includes(order.status) ? "bad" : "warn"}">${order.status}</span>
+      </div>
+      ${order.items?.length ? `<div class="table-wrap"><table><thead><tr><th>SKU</th><th>Department</th><th>Qty</th></tr></thead><tbody>${order.items.map((item) => `<tr><td>${esc(product(item.productId).name)}</td><td>${esc(product(item.productId).department)}</td><td>${qtyUnit(item.qty, item.productId)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="muted">Photo slip only. Factory should read the uploaded order slip.</p>`}
+      ${order.photo ? `<img src="${order.photo}" class="photo-preview order-photo" style="display:block" alt="Order slip">` : ""}
+      ${order.note ? `<p class="notice">${esc(order.note)}</p>` : ""}
+      <div class="actions no-print">${statusActions.filter(([status]) => status !== order.status).map(([status, label]) => `<button class="ghost" type="button" data-order-id="${order.id}" data-order-status="${status}">${label}</button>`).join("")}</div>
+    </div>
+  `;
 }
 
 function demandSelectOptions() {
@@ -1061,6 +1322,7 @@ function renderView() {
   if (state.tab === "dashboard") renderDashboard(view);
   if (state.tab === "demand") renderDemand(view);
   if (state.tab === "bulk") renderBulk(view);
+  if (state.tab === "orders") renderOrders(view);
   if (state.tab === "dispatch") renderDispatch(view);
   if (state.tab === "verify") renderVerify(view);
   if (state.tab === "logs") renderLogs(view);
