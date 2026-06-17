@@ -388,6 +388,20 @@ function validateItems(products, items) {
   return null;
 }
 
+function cleanItems(items) {
+  return Array.isArray(items) ? items.filter((item) => item.productId && Number(item.qty) > 0) : [];
+}
+
+function validateItemsOrPhoto(products, items, photo, emptyMessage) {
+  const cleanedItems = cleanItems(items);
+  if (!cleanedItems.length && !photo) return { items: cleanedItems, error: emptyMessage };
+  const photoError = validatePhoto(photo);
+  if (photoError) return { items: cleanedItems, error: photoError };
+  const itemError = cleanedItems.length ? validateItems(products, cleanedItems) : null;
+  if (itemError) return { items: cleanedItems, error: itemError };
+  return { items: cleanedItems, error: null };
+}
+
 function cleanOrderInput(db, products, body, user) {
   const outletId = user.role === "outlet" ? user.outletId : String(body.outletId || "");
   if (!db.outlets.some((o) => o.id === outletId)) return { error: "Invalid outlet" };
@@ -696,21 +710,20 @@ async function handleApi(req, res, db, products) {
     const body = await getBody(req);
     const outletId = user.role === "outlet" ? user.outletId : body.outletId;
     if (!db.outlets.some((o) => o.id === outletId)) return fail(res, 400, "Invalid outlet");
-    const error = validateItems(products, body.items);
+    const photo = body.photo || null;
+    const { items, error } = validateItemsOrPhoto(products, body.items, photo, "Add SKU quantities or upload handwritten challan photo");
     if (error) return fail(res, 400, error);
-    const photoError = validatePhoto(body.photo);
-    if (photoError) return fail(res, 400, photoError);
     const demand = {
       id: id("demand"),
       challanNo: `REQ-${businessStamp()}-${db.demands.length + 1}`,
       outletId,
       status: "pending",
       note: String(body.note || ""),
-      photo: body.photo || null,
+      photo,
       mode: body.mode === "bulk" ? "bulk" : "manual",
       createdAt: nowIso(),
       createdBy: user.username,
-      items: body.items.map((item) => {
+      items: items.map((item) => {
         const product = products.find((p) => p.id === item.productId);
         return {
           productId: item.productId,
@@ -731,10 +744,9 @@ async function handleApi(req, res, db, products) {
     if (!["admin", "factory"].includes(user.role)) return fail(res, 403, "Only factory or admin can dispatch");
     const body = await getBody(req);
     if (!db.outlets.some((o) => o.id === body.outletId)) return fail(res, 400, "Invalid outlet");
-    const error = validateItems(products, body.items);
+    const photo = body.photo || null;
+    const { items, error } = validateItemsOrPhoto(products, body.items, photo, "Add dispatch products or upload handwritten dispatch photo");
     if (error) return fail(res, 400, error);
-    const photoError = validatePhoto(body.photo);
-    if (photoError) return fail(res, 400, photoError);
     const linkedDemand = body.demandId ? db.demands.find((d) => d.id === body.demandId) : null;
     const dispatch = {
       id: id("dispatch"),
@@ -743,12 +755,12 @@ async function handleApi(req, res, db, products) {
       outletId: body.outletId,
       status: "pending_verification",
       note: String(body.note || ""),
-      photo: body.photo || null,
+      photo,
       createdAt: nowIso(),
       createdBy: user.username,
       verifiedAt: null,
       verifiedBy: null,
-      items: pickDemandItemsForDispatch(linkedDemand, body.items.map((item) => {
+      items: pickDemandItemsForDispatch(linkedDemand, items.map((item) => {
         const product = products.find((p) => p.id === item.productId);
         return {
           productId: item.productId,

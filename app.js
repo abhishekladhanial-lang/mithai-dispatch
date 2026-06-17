@@ -546,7 +546,7 @@ function renderDemand(view) {
         </div>
         <div class="quick-sheet no-print">
           <div class="section-head">
-            <div><h3 data-demand-title>${esc(activeDepartment)} Sheet</h3><p class="muted">Fill only the required quantity. Blank rows are ignored.</p></div>
+            <div><h3 data-demand-title>${esc(activeDepartment)} Sheet</h3><p class="muted">Fill quantities across departments, or submit only a handwritten photo during rush.</p></div>
             <span class="badge good">Auto saved</span>
           </div>
           <div class="bulk-wrap entry-sheet"><table class="bulk-table"><thead><tr><th>SKU</th><th>Unit</th><th>Required Qty</th></tr></thead><tbody data-demand-fast-rows></tbody></table></div>
@@ -560,6 +560,7 @@ function renderDemand(view) {
         </div>
         <label>Note <textarea name="note" placeholder="Urgent timing, quality preference, or vehicle note">${esc(draft.note)}</textarea></label>
         ${photoInput()}
+        <div class="notice">Photo-only challan is allowed. Use SKU quantities when there is time, or upload the handwritten slip and submit.</div>
         <div class="sticky-actions no-print">
           <button class="btn" type="submit">Submit Challan</button>
           <button class="ghost" type="button" data-clear-demand-draft>Clear Draft</button>
@@ -581,7 +582,10 @@ function renderDemand(view) {
     draft.department = dept.value;
     saveEntryDraft("demand", draft);
     const status = form.querySelector("[data-demand-save-status]");
-    if (status) status.textContent = `Draft auto-saved · ${selectedDraftItems(draft).length} item${selectedDraftItems(draft).length === 1 ? "" : "s"}`;
+    if (status) {
+      const count = selectedDraftItems(draft).length;
+      status.textContent = draft.photo && !count ? "Photo saved · ready to submit" : `Draft auto-saved · ${count} item${count === 1 ? "" : "s"}`;
+    }
   };
   const refreshSkus = () => {
     const term = search.value.trim().toLowerCase();
@@ -735,6 +739,7 @@ function renderBulk(view) {
       </div>
       <label>Sheet note <textarea name="note" placeholder="Night count, urgent items, vehicle timing">${esc(draft.note)}</textarea></label>
       ${photoInput("Upload paper sheet photo")}
+      <div class="notice">Photo-only bulk challan is allowed. The paper sheet photo will go to the factory dashboard even if no rows are entered.</div>
       <div class="sticky-actions no-print">
         <button class="btn" type="submit">Submit Bulk Challan</button>
         <span class="muted" data-bulk-save-status>Draft auto-saved</span>
@@ -753,7 +758,10 @@ function renderBulk(view) {
     draft.department = dept.value;
     saveEntryDraft("bulk", draft);
     const status = form.querySelector("[data-bulk-save-status]");
-    if (status) status.textContent = `Draft auto-saved · ${selectedDraftItems(draft).length} item${selectedDraftItems(draft).length === 1 ? "" : "s"}`;
+    if (status) {
+      const count = selectedDraftItems(draft).length;
+      status.textContent = draft.photo && !count ? "Photo saved · ready to submit" : `Draft auto-saved · ${count} item${count === 1 ? "" : "s"}`;
+    }
   };
   const refreshDeptButtons = () => {
     form.querySelector("[data-bulk-dept-buttons]").innerHTML = `
@@ -1030,6 +1038,7 @@ function renderDispatch(view) {
       ${itemRowsHtml()}
       <label>Dispatch note <textarea name="note" placeholder="Vehicle, timing, manual note reference"></textarea></label>
       ${photoInput("Upload dispatch/challan photo")}
+      <div class="notice">Photo-only dispatch is allowed during rush. Add SKU rows later only when the exact quantities are available.</div>
       <div class="actions"><button class="btn" type="submit">Save Dispatch</button></div>
     </form>
   `;
