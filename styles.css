@@ -317,6 +317,13 @@ textarea {
   border-color: var(--line);
 }
 
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
 .danger {
   background: #fff5f5;
   border-color: #fecaca;
@@ -581,6 +588,29 @@ th {
   border-radius: 8px;
   border: 1px solid var(--line);
   display: none;
+}
+
+.demand-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfcf8;
+}
+
+.demand-card.compact {
+  box-shadow: none;
+}
+
+.demand-summary {
+  margin-top: 8px;
+}
+
+.demand-photo {
+  width: min(360px, 100%);
+  max-width: 100%;
+  max-height: 260px;
+  object-fit: contain;
+  background: #fff;
 }
 
 .notice {

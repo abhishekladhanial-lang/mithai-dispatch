@@ -43,6 +43,10 @@ function qtyUnit(amount, productId) {
   return `${qty(amount)} ${unitOf(productId)}`;
 }
 
+function appLink() {
+  return `${window.location.origin}${window.location.pathname}`;
+}
+
 function outlet(id) {
   return state.data.outlets.find((o) => o.id === id) || { id, name: id };
 }
@@ -314,6 +318,15 @@ function renderDashboard(view) {
       <div class="span-3">${kpi("Pending verification", pendingVerifications.length, pendingVerifications.length ? "bad" : "")}</div>
       <div class="span-3">${kpi("Total sent", `${qty(sent)} units`)}</div>
       <div class="span-3">${kpi("Open demands", pendingDemands.length, pendingDemands.length ? "warn" : "")}</div>
+      ${state.user.role !== "outlet" ? `
+      <div class="span-12 panel">
+        <div class="section-head">
+          <div><h3>Factory Demand Inbox</h3><p class="muted">Use this like the old WhatsApp photo flow: view uploaded slips, check SKU rows, then create dispatch.</p></div>
+          <span class="badge warn">${pendingDemands.length} pending</span>
+        </div>
+        ${miniDemandList(pendingDemands.slice(0, 8))}
+      </div>
+      ` : ""}
       <div class="span-6 panel">
         <div class="section-head"><h3>Customer Orders Today</h3><span class="badge ${todaysOrders.length ? "bad" : "good"}">${todaysOrders.length} open</span></div>
         ${miniOrderList(todaysOrders.slice(0, 5))}
@@ -333,6 +346,11 @@ function renderDashboard(view) {
     </div>
   `;
   view.querySelector("[data-refresh]").addEventListener("click", async () => { await load(); toast("Updated"); });
+  view.querySelectorAll("[data-dispatch-demand]").forEach((button) => button.addEventListener("click", () => {
+    state.prefillDemandId = button.dataset.dispatchDemand;
+    state.tab = "dispatch";
+    buildShell();
+  }));
 }
 
 function addDays(dateText, days) {
@@ -343,12 +361,43 @@ function addDays(dateText, days) {
 
 function miniDemandList(rows) {
   if (!rows.length) return `<p class="muted">No open challan demand.</p>`;
-  return `<div class="stack">${rows.map((d) => `
-    <div>
-      <strong>${d.challanNo}</strong> <span class="muted">${outlet(d.outletId).name}${d.mode === "bulk" ? " · bulk sheet" : ""}</span><br>
-      <span class="muted">${d.items.map((i) => `${esc(product(i.productId).name)} ${qtyUnit(i.qty, i.productId)}${i.currentStock != null ? ` · stock ${qtyUnit(i.currentStock, i.productId)}` : ""}${i.lowStock ? " · low" : ""}`).join(", ")}</span>
+  return `<div class="stack">${rows.map((d) => demandCard(d, true)).join("")}</div>`;
+}
+
+function demandItemsText(demand) {
+  if (!demand.items?.length) return demand.photo ? "Photo-only demand. Open the image and prepare from handwritten slip." : "No SKU rows added.";
+  return demand.items.map((i) => `${esc(product(i.productId).name)} ${qtyUnit(i.qty, i.productId)}${i.currentStock != null ? ` · stock ${qtyUnit(i.currentStock, i.productId)}` : ""}${i.lowStock ? " · low" : ""}`).join(", ");
+}
+
+function demandWhatsAppLink(demand) {
+  const outletName = outlet(demand.outletId).name;
+  const mode = demand.mode === "bulk" ? "bulk sheet challan" : "challan";
+  const text = `New ${mode} received from ${outletName}: ${demand.challanNo}. Open Mithai Dispatch to view ${demand.photo ? "photo and " : ""}items: ${appLink()}`;
+  return `https://wa.me/?text=${encodeURIComponent(text)}`;
+}
+
+function demandCard(demand, compact = false) {
+  const canDispatch = state.user?.role !== "outlet";
+  return `
+    <div class="demand-card ${compact ? "compact" : ""}">
+      <div class="section-head">
+        <div>
+          <h3>${demand.challanNo}</h3>
+          <p class="muted">${outlet(demand.outletId).name} · ${demand.mode === "bulk" ? "Bulk sheet" : "Manual challan"} · ${new Date(demand.createdAt).toLocaleString()}</p>
+        </div>
+        <span class="badge ${demand.photo ? "warn" : "good"}">${demand.photo ? "Photo attached" : `${demand.items?.length || 0} SKU`}</span>
+      </div>
+      <p class="muted demand-summary">${demandItemsText(demand)}</p>
+      ${demand.note ? `<p>${esc(demand.note)}</p>` : ""}
+      ${demand.photo ? `<a href="${demand.photo}" target="_blank" rel="noopener"><img src="${demand.photo}" class="photo-preview demand-photo" style="display:block" alt="Uploaded challan photo"></a>` : ""}
+      ${canDispatch ? `
+        <div class="actions no-print">
+          <button class="btn" type="button" data-dispatch-demand="${demand.id}">Create Dispatch</button>
+          <a class="ghost button-link" href="${demandWhatsAppLink(demand)}" target="_blank" rel="noopener">WhatsApp Factory Alert</a>
+        </div>
+      ` : ""}
     </div>
-  `).join("")}</div>`;
+  `;
 }
 
 function miniDispatchList(rows) {
@@ -693,9 +742,10 @@ function renderDemand(view) {
         note: form.note.value,
         photo: draft.photo || form.querySelector("[data-photo-input]")?.dataset.photo || null
       };
-      await api("/api/demands", { method: "POST", body: JSON.stringify(body) });
+      const created = await api("/api/demands", { method: "POST", body: JSON.stringify(body) });
       clearEntryDraft("demand");
       toast("Challan demand sent to factory");
+      if (confirm("Open WhatsApp alert for factory now?")) window.open(demandWhatsAppLink(created), "_blank", "noopener");
       state.tab = "dashboard";
       await load();
     } catch (error) {
@@ -880,7 +930,7 @@ function renderBulk(view) {
       return;
     }
     try {
-      await api("/api/demands", {
+      const created = await api("/api/demands", {
         method: "POST",
         body: JSON.stringify({
           mode: "bulk",
@@ -892,6 +942,7 @@ function renderBulk(view) {
       });
       clearEntryDraft("bulk");
       toast("Bulk challan sent to factory");
+      if (confirm("Open WhatsApp alert for factory now?")) window.open(demandWhatsAppLink(created), "_blank", "noopener");
       state.tab = "dashboard";
       await load();
     } catch (error) {
@@ -1022,7 +1073,7 @@ function orderCard(order) {
 
 function demandSelectOptions() {
   const open = state.data.demands.filter((d) => d.status === "pending");
-  return `<option value="">Dispatch without demand</option>${open.map((d) => `<option value="${d.id}">${d.challanNo} · ${outlet(d.outletId).name}</option>`).join("")}`;
+  return `<option value="">Dispatch without demand</option>${open.map((d) => `<option value="${d.id}">${d.challanNo} · ${outlet(d.outletId).name}${d.mode === "bulk" ? " · bulk" : ""}${d.photo ? " · photo" : ""}</option>`).join("")}`;
 }
 
 function renderDispatch(view) {
@@ -1045,7 +1096,7 @@ function renderDispatch(view) {
   const form = view.querySelector("[data-dispatch-form]");
   wireLineEditor(form);
   wirePhoto(form);
-  form.demandId.addEventListener("change", () => {
+  const loadDemand = () => {
     const demand = state.data.demands.find((d) => d.id === form.demandId.value);
     const details = form.querySelector("[data-demand-details]");
     if (!demand) {
@@ -1054,13 +1105,22 @@ function renderDispatch(view) {
     }
     form.outletId.value = demand.outletId;
     details.innerHTML = `
-      <div class="notice">
-        ${demand.mode === "bulk" ? "Bulk sheet demand" : "Manual demand"}: ${demand.items.map((item) => `${esc(product(item.productId).name)} required ${qtyUnit(item.qty, item.productId)}${item.currentStock != null ? `, current ${qtyUnit(item.currentStock, item.productId)}` : ""}${item.lowStock ? ", marked low" : ""}${item.lineNote ? `, ${esc(item.lineNote)}` : ""}`).join(" | ")}
+      <div class="notice stack">
+        <strong>${demand.mode === "bulk" ? "Bulk sheet demand" : "Manual demand"} · ${demand.challanNo}</strong>
+        <span>${demandItemsText(demand)}</span>
+        ${demand.note ? `<span>Note: ${esc(demand.note)}</span>` : ""}
+        ${demand.photo ? `<a href="${demand.photo}" target="_blank" rel="noopener"><img src="${demand.photo}" class="photo-preview demand-photo" style="display:block" alt="Demand photo"></a>` : ""}
       </div>
     `;
     form.querySelector("[data-lines]").innerHTML = "";
     demand.items.forEach((item) => addLine(form, { productId: item.productId, department: product(item.productId).department, qty: item.qty }));
-  });
+  };
+  form.demandId.addEventListener("change", loadDemand);
+  if (state.prefillDemandId) {
+    form.demandId.value = state.prefillDemandId;
+    state.prefillDemandId = null;
+    loadDemand();
+  }
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     try {

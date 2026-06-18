@@ -199,7 +199,10 @@ function buildAlerts(db, user) {
   if (user.role !== "outlet") {
     for (const demand of db.demands.filter((d) => d.status === "pending").slice(0, 20)) {
       const outletName = db.outlets.find((o) => o.id === demand.outletId)?.name || demand.outletId;
-      add("demand", demand.id, `New challan ${demand.challanNo}`, `${outletName} requested ${demand.items.length} SKU${demand.items.length === 1 ? "" : "s"}`, "warn", demand.createdAt);
+      const detail = demand.items.length
+        ? `${demand.items.length} SKU${demand.items.length === 1 ? "" : "s"} requested`
+        : demand.photo ? "photo slip attached" : "manual challan needs review";
+      add("demand", demand.id, `New challan ${demand.challanNo}`, `${outletName} · ${detail}`, "warn", demand.createdAt);
     }
     for (const order of (db.orders || []).filter((o) => ["booked", "preparing"].includes(o.status)).slice(0, 25)) {
       const outletName = db.outlets.find((o) => o.id === order.outletId)?.name || order.outletId;
