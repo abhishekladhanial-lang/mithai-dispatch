@@ -47,6 +47,23 @@ function appLink() {
   return `${window.location.origin}${window.location.pathname}`;
 }
 
+function photoExtension(photo) {
+  const match = String(photo || "").match(/^data:image\/(png|jpeg|webp);base64,/i);
+  if (!match) return "png";
+  return match[1].toLowerCase() === "jpeg" ? "jpg" : match[1].toLowerCase();
+}
+
+function photoActions(photo, filenameBase = "challan-photo") {
+  if (!photo) return "";
+  const filename = `${filenameBase}.${photoExtension(photo)}`;
+  return `
+    <div class="photo-actions no-print">
+      <button class="ghost" type="button" data-open-photo="${esc(photo)}">Open Photo</button>
+      <button class="ghost" type="button" data-download-photo="${esc(photo)}" data-filename="${esc(filename)}">Download Photo</button>
+    </div>
+  `;
+}
+
 function outlet(id) {
   return state.data.outlets.find((o) => o.id === id) || { id, name: id };
 }
@@ -96,6 +113,41 @@ function showLiveAlert(alert) {
   if ("Notification" in window && Notification.permission === "granted") {
     new Notification(alert.title, { body: alert.text, tag: alert.id, icon: "/icon.svg" });
   }
+}
+
+function photoBlobUrl(photo) {
+  const [header, base64] = String(photo || "").split(",");
+  if (!base64) return null;
+  const mime = header.match(/data:([^;]+)/)?.[1] || "image/png";
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return URL.createObjectURL(new Blob([bytes], { type: mime }));
+}
+
+function openPhoto(photo) {
+  const url = photoBlobUrl(photo);
+  if (!url) return toast("Photo is not available");
+  const opened = window.open(url, "_blank", "noopener");
+  if (!opened) toast("Allow popups to open photo");
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+function downloadPhoto(photo, filename = "challan-photo.png") {
+  const url = photoBlobUrl(photo);
+  if (!url) return toast("Photo is not available");
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+function wirePhotoActions(root = document) {
+  root.querySelectorAll("[data-open-photo]").forEach((button) => button.addEventListener("click", () => openPhoto(button.dataset.openPhoto)));
+  root.querySelectorAll("[data-download-photo]").forEach((button) => button.addEventListener("click", () => downloadPhoto(button.dataset.downloadPhoto, button.dataset.filename)));
 }
 
 async function askAssistant(event) {
@@ -351,6 +403,7 @@ function renderDashboard(view) {
     state.tab = "dispatch";
     buildShell();
   }));
+  wirePhotoActions(view);
 }
 
 function addDays(dateText, days) {
@@ -389,7 +442,10 @@ function demandCard(demand, compact = false) {
       </div>
       <p class="muted demand-summary">${demandItemsText(demand)}</p>
       ${demand.note ? `<p>${esc(demand.note)}</p>` : ""}
-      ${demand.photo ? `<a href="${demand.photo}" target="_blank" rel="noopener"><img src="${demand.photo}" class="photo-preview demand-photo" style="display:block" alt="Uploaded challan photo"></a>` : ""}
+      ${demand.photo ? `
+        <img src="${demand.photo}" class="photo-preview demand-photo" style="display:block" alt="Uploaded challan photo">
+        ${photoActions(demand.photo, demand.challanNo)}
+      ` : ""}
       ${canDispatch ? `
         <div class="actions no-print">
           <button class="btn" type="button" data-dispatch-demand="${demand.id}">Create Dispatch</button>
@@ -551,11 +607,10 @@ function draftReviewHtml(draft, emptyText = "No items selected yet.") {
   let currentDept = "";
   return items.map((item) => {
     const p = product(item.productId);
-    const head = p.department !== currentDept ? (currentDept = p.department, `<tr class="dept-row"><td colspan="4">${esc(p.department)}</td></tr>`) : "";
+    const head = p.department !== currentDept ? (currentDept = p.department, `<tr class="dept-row"><td colspan="3">${esc(p.department)}</td></tr>`) : "";
     return `${head}<tr data-review-product="${item.productId}">
       <td><strong>${esc(p.name)}</strong></td>
       <td>${qtyUnit(item.qty, item.productId)}</td>
-      <td>${item.currentStock != null && item.currentStock !== "" ? qtyUnit(item.currentStock, item.productId) : "-"}</td>
       <td class="no-print"><button class="ghost" type="button" data-remove-draft-item="${item.productId}">Remove</button></td>
     </tr>`;
   }).join("");
@@ -575,11 +630,7 @@ function renderDemand(view) {
       <button class="ghost no-print" type="button" data-window-print>Print</button>
     </div>
     <div class="grid">
-      <div class="span-4 panel">
-        <div class="section-head"><h3>Pending Challans</h3><span class="badge warn">${pending.length} pending</span></div>
-        ${miniDemandList(pending.slice(0, 12))}
-      </div>
-      <form class="span-8 panel stack" data-demand-form>
+      <form class="span-12 panel stack demand-entry-panel" data-demand-form>
         <h3>Requirement Entry</h3>
         ${state.user.role === "admin" ? `<label>Outlet <select name="outletId" data-draft-outlet>${outletOptions(draft.outletId)}</select></label>` : ""}
         <div class="notice">Auto-save is on. Department changes, refresh, or accidental back will not erase this draft on this device.</div>
@@ -603,8 +654,8 @@ function renderDemand(view) {
         <div class="table-wrap selected-review">
           <div class="section-head"><h3>Review Challan</h3><span class="muted" data-demand-count>0 items selected</span></div>
           <table class="requirement-table">
-            <thead><tr><th>SKU</th><th>Required</th><th>Current stock</th><th class="no-print">Action</th></tr></thead>
-            <tbody data-demand-items><tr><td colspan="4">No items added.</td></tr></tbody>
+            <thead><tr><th>SKU</th><th>Required</th><th class="no-print">Action</th></tr></thead>
+            <tbody data-demand-items><tr><td colspan="3">No items added.</td></tr></tbody>
           </table>
         </div>
         <label>Note <textarea name="note" placeholder="Urgent timing, quality preference, or vehicle note">${esc(draft.note)}</textarea></label>
@@ -616,6 +667,10 @@ function renderDemand(view) {
           <span class="muted" data-demand-save-status>Draft auto-saved</span>
         </div>
       </form>
+      <div class="span-12 panel">
+        <div class="section-head"><h3>Pending Challans</h3><span class="badge warn">${pending.length} pending</span></div>
+        ${miniDemandList(pending.slice(0, 12))}
+      </div>
     </div>
   `;
   const form = view.querySelector("[data-demand-form]");
@@ -652,7 +707,7 @@ function renderDemand(view) {
   const renderSelected = () => {
     const rows = selectedDraftItems(draft);
     count.textContent = `${rows.length} item${rows.length === 1 ? "" : "s"} selected`;
-    tbody.innerHTML = rows.length ? draftReviewHtml(draft) : `<tr><td colspan="4">No items added.</td></tr>`;
+    tbody.innerHTML = rows.length ? draftReviewHtml(draft) : `<tr><td colspan="3">No items added.</td></tr>`;
     form.querySelector("[data-demand-dept-buttons]").innerHTML = departmentButtonsHtml(draft, dept.value, "demand");
     saveDraft();
   };
@@ -779,13 +834,13 @@ function renderBulk(view) {
       </div>
       <div class="bulk-wrap">
         <table class="bulk-table">
-          <thead><tr><th>Department</th><th>SKU</th><th>Unit</th><th>Current stock</th><th>Low</th><th>Required</th></tr></thead>
+          <thead><tr><th>Department</th><th>SKU</th><th>Unit</th><th>Low</th><th>Required</th></tr></thead>
           <tbody data-bulk-rows></tbody>
         </table>
       </div>
       <div class="table-wrap selected-review">
         <div class="section-head"><h3>Review Bulk Challan</h3><span class="muted" data-bulk-count>0 items selected</span></div>
-        <table><thead><tr><th>SKU</th><th>Required</th><th>Current stock</th><th class="no-print">Action</th></tr></thead><tbody data-bulk-review></tbody></table>
+        <table><thead><tr><th>SKU</th><th>Required</th><th class="no-print">Action</th></tr></thead><tbody data-bulk-review></tbody></table>
       </div>
       <label>Sheet note <textarea name="note" placeholder="Night count, urgent items, vehicle timing">${esc(draft.note)}</textarea></label>
       ${photoInput("Upload paper sheet photo")}
@@ -828,17 +883,16 @@ function renderBulk(view) {
         <td>${esc(p.department)}</td>
         <td><strong>${esc(p.name)}</strong></td>
         <td><span class="badge">${p.unit || "kg"}</span></td>
-        <td><input name="currentStock" type="number" min="0" step="${stepOf(p.id)}" inputmode="${inputModeOf(p.id)}" placeholder="Stock" value="${draft.items[p.id]?.currentStock ?? ""}"></td>
         <td class="right"><input name="lowStock" type="checkbox" aria-label="Low stock for ${esc(p.name)}" ${draft.items[p.id]?.lowStock ? "checked" : ""}></td>
         <td><input class="qty-cell" name="requiredQty" type="number" min="0" step="${stepOf(p.id)}" inputmode="${inputModeOf(p.id)}" placeholder="Order" value="${draftQty(draft, p.id) || ""}"></td>
       </tr>
-    `).join("") || `<tr><td colspan="6">No SKU found.</td></tr>`;
+    `).join("") || `<tr><td colspan="5">No SKU found.</td></tr>`;
     updateCount();
   };
   const updateCount = () => {
     const selected = selectedDraftItems(draft).length;
     count.textContent = `${selected} item${selected === 1 ? "" : "s"} selected`;
-    review.innerHTML = selected ? draftReviewHtml(draft) : `<tr><td colspan="4">No items selected yet.</td></tr>`;
+    review.innerHTML = selected ? draftReviewHtml(draft) : `<tr><td colspan="3">No items selected yet.</td></tr>`;
     refreshDeptButtons();
     saveDraft();
   };
@@ -861,22 +915,16 @@ function renderBulk(view) {
     if (!row) return;
     const productId = row.dataset.bulkProduct;
     let qtyValue = Number(row.querySelector("[name=requiredQty]").value);
-    let currentStock = row.querySelector("[name=currentStock]").value;
     if (unitOf(productId) === "pcs") {
       if (row.querySelector("[name=requiredQty]").value && !Number.isInteger(qtyValue)) {
         toast(`${product(productId).name} required quantity must be whole pieces`);
         qtyValue = Math.floor(qtyValue || 0);
         row.querySelector("[name=requiredQty]").value = qtyValue || "";
       }
-      if (currentStock !== "" && !Number.isInteger(Number(currentStock))) {
-        toast(`${product(productId).name} current stock must be whole pieces`);
-        currentStock = String(Math.floor(Number(currentStock) || 0) || "");
-        row.querySelector("[name=currentStock]").value = currentStock;
-      }
     }
     setDraftItem(draft, productId, {
       qty: qtyValue,
-      currentStock: currentStock === "" ? null : Number(currentStock),
+      currentStock: null,
       lowStock: row.querySelector("[name=lowStock]").checked
     });
     updateCount();
@@ -922,11 +970,10 @@ function renderBulk(view) {
     const items = selectedDraftItems(draft).map((item) => ({
       productId: item.productId,
       qty: Number(item.qty),
-      currentStock: item.currentStock == null || item.currentStock === "" ? null : Number(item.currentStock),
       lowStock: Boolean(item.lowStock)
     }));
-    if (items.some((item) => unitOf(item.productId) === "pcs" && (!Number.isInteger(item.qty) || (item.currentStock != null && !Number.isInteger(item.currentStock))))) {
-      toast("Piece SKUs must use whole numbers for required and current stock");
+    if (items.some((item) => unitOf(item.productId) === "pcs" && !Number.isInteger(item.qty))) {
+      toast("Piece SKUs must use whole numbers for required quantity");
       return;
     }
     try {
@@ -1109,11 +1156,15 @@ function renderDispatch(view) {
         <strong>${demand.mode === "bulk" ? "Bulk sheet demand" : "Manual demand"} · ${demand.challanNo}</strong>
         <span>${demandItemsText(demand)}</span>
         ${demand.note ? `<span>Note: ${esc(demand.note)}</span>` : ""}
-        ${demand.photo ? `<a href="${demand.photo}" target="_blank" rel="noopener"><img src="${demand.photo}" class="photo-preview demand-photo" style="display:block" alt="Demand photo"></a>` : ""}
+        ${demand.photo ? `
+          <img src="${demand.photo}" class="photo-preview demand-photo" style="display:block" alt="Demand photo">
+          ${photoActions(demand.photo, demand.challanNo)}
+        ` : ""}
       </div>
     `;
     form.querySelector("[data-lines]").innerHTML = "";
     demand.items.forEach((item) => addLine(form, { productId: item.productId, department: product(item.productId).department, qty: item.qty }));
+    wirePhotoActions(details);
   };
   form.demandId.addEventListener("change", loadDemand);
   if (state.prefillDemandId) {
@@ -1121,6 +1172,7 @@ function renderDispatch(view) {
     state.prefillDemandId = null;
     loadDemand();
   }
+  wirePhotoActions(view);
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     try {
