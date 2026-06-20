@@ -148,6 +148,7 @@ async function seedDb() {
     ],
     demands: [],
     dispatches: [],
+    sales: [],
     orders: [],
     returns: [],
     audit: [
@@ -165,6 +166,7 @@ function normalizeDb(db) {
   db.users ||= [];
   db.demands ||= [];
   db.dispatches ||= [];
+  db.sales ||= [];
   db.orders ||= [];
   db.returns ||= [];
   db.audit ||= [];
@@ -556,6 +558,7 @@ async function handleApi(req, res, db, products) {
   if (route === "GET /api/bootstrap") {
     const demands = db.demands.filter((d) => canSeeOutlet(user, d.outletId));
     const dispatches = db.dispatches.filter((d) => canSeeOutlet(user, d.outletId));
+    const sales = (db.sales || []).filter((s) => canSeeOutlet(user, s.outletId));
     const orders = visibleOrders(db, user);
     return send(res, 200, {
       user: publicUser(user),
@@ -565,6 +568,7 @@ async function handleApi(req, res, db, products) {
       departments: [...new Set(products.map((p) => p.department))].sort(),
       demands,
       dispatches: dispatches.map((d) => ({ ...d, totals: computeDispatch(d) })),
+      sales,
       orders,
       alerts: buildAlerts(db, user),
       audit: user.role === "admin" ? db.audit.slice(0, 250) : []
@@ -782,6 +786,38 @@ async function handleApi(req, res, db, products) {
     return send(res, 201, { ...dispatch, totals: computeDispatch(dispatch) });
   }
 
+  if (route === "POST /api/sales") {
+    if (!["admin", "factory"].includes(user.role)) return fail(res, 403, "Only factory or admin can record direct sale");
+    const body = await getBody(req);
+    const outletId = String(body.outletId || "");
+    if (!db.outlets.some((o) => o.id === outletId)) return fail(res, 400, "Invalid outlet");
+    const saleDate = String(body.saleDate || businessDate());
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(saleDate)) return fail(res, 400, "Select valid sale date");
+    const error = validateItems(products, body.items);
+    if (error) return fail(res, 400, error);
+    const sale = {
+      id: id("sale"),
+      saleNo: `SAL-${saleDate.replace(/-/g, "")}-${(db.sales || []).length + 1}`,
+      outletId,
+      saleDate,
+      note: String(body.note || ""),
+      createdAt: nowIso(),
+      createdBy: user.username,
+      items: body.items.map((item) => {
+        const product = products.find((p) => p.id === item.productId);
+        return {
+          productId: item.productId,
+          qty: Number(item.qty),
+          unit: product?.unit || "kg"
+        };
+      })
+    };
+    db.sales ||= [];
+    db.sales.unshift(sale);
+    await mutate(db, user, "create", "sale", sale.id, `Recorded ${sale.saleNo}`);
+    return send(res, 201, sale);
+  }
+
   const verifyMatch = url.pathname.match(/^\/api\/dispatches\/([^/]+)\/verify$/);
   if (req.method === "POST" && verifyMatch) {
     const dispatch = db.dispatches.find((d) => d.id === verifyMatch[1]);
@@ -834,41 +870,80 @@ async function handleApi(req, res, db, products) {
     if (user.role !== "admin") return fail(res, 403, "Only admin can view value reports");
     const from = url.searchParams.get("from") || "1970-01-01";
     const to = url.searchParams.get("to") || "2999-12-31";
-    const rows = db.dispatches.filter((d) => {
+    const dispatchRows = db.dispatches.filter((d) => {
       const date = businessDate(d.createdAt);
       return d.status === "verified" && date >= from && date <= to;
     });
+    const saleRows = (db.sales || []).filter((s) => s.saleDate >= from && s.saleDate <= to);
     const productMap = new Map(products.map((p) => [p.id, p]));
     const outletMap = new Map(db.outlets.map((o) => [o.id, o]));
     const byProduct = new Map();
+    const byDepartment = new Map();
+    const byOutlet = new Map();
     const shortages = [];
-    for (const d of rows) {
+    const addSaleMovement = ({ productId, qty, outletId, source, date, returned = 0, shortage = 0 }) => {
+      const p = productMap.get(productId);
+      const sold = Math.max(0, Number(qty || 0) - Number(returned || 0));
+      const value = sold * Number(p?.price || 0);
+      const key = productId;
+      const current = byProduct.get(key) || { productId: key, product: p?.name || key, department: p?.department || "", unit: p?.unit || "kg", soldQty: 0, directSaleQty: 0, dispatchSaleQty: 0, returnedQty: 0, shortageQty: 0, value: 0 };
+      current.soldQty += sold;
+      current.returnedQty += Number(returned || 0);
+      current.shortageQty += Number(shortage || 0);
+      current.value += value;
+      if (source === "direct") current.directSaleQty += sold;
+      else current.dispatchSaleQty += sold;
+      byProduct.set(key, current);
+
+      const deptKey = p?.department || "Unassigned";
+      const dept = byDepartment.get(deptKey) || { department: deptKey, soldQty: 0, directSaleQty: 0, dispatchSaleQty: 0, value: 0 };
+      dept.soldQty += sold;
+      dept.value += value;
+      if (source === "direct") dept.directSaleQty += sold;
+      else dept.dispatchSaleQty += sold;
+      byDepartment.set(deptKey, dept);
+
+      const outletName = outletMap.get(outletId)?.name || outletId;
+      const outletRow = byOutlet.get(outletId) || { outletId, outlet: outletName, soldQty: 0, directSaleQty: 0, dispatchSaleQty: 0, value: 0 };
+      outletRow.soldQty += sold;
+      outletRow.value += value;
+      if (source === "direct") outletRow.directSaleQty += sold;
+      else outletRow.dispatchSaleQty += sold;
+      byOutlet.set(outletId, outletRow);
+    };
+    for (const d of dispatchRows) {
       for (const item of d.items) {
         const p = productMap.get(item.productId);
         const received = Number(item.receivedQty || 0);
         const returned = Number(item.damagedQty || 0) + Number(item.excessReturnQty || 0);
         const sold = Math.max(0, received - returned);
         const shortage = Math.max(0, Number(item.qty || 0) - received);
-        const key = item.productId;
-        const current = byProduct.get(key) || { productId: key, product: p?.name || key, department: p?.department || "", unit: p?.unit || "kg", soldQty: 0, returnedQty: 0, shortageQty: 0, value: 0 };
-        current.soldQty += sold;
-        current.returnedQty += returned;
-        current.shortageQty += shortage;
-        current.value += sold * Number(p?.price || 0);
-        byProduct.set(key, current);
-        if (shortage > 0 || returned > 0) shortages.push({ dispatchId: d.id, challanNo: d.challanNo, outlet: outletMap.get(d.outletId)?.name || d.outletId, product: p?.name || key, unit: p?.unit || "kg", shortage, returned, date: businessDate(d.createdAt) });
+        addSaleMovement({ productId: item.productId, qty: sold + returned, outletId: d.outletId, source: "dispatch", date: businessDate(d.createdAt), returned, shortage });
+        if (shortage > 0 || returned > 0) shortages.push({ dispatchId: d.id, challanNo: d.challanNo, outlet: outletMap.get(d.outletId)?.name || d.outletId, product: p?.name || item.productId, unit: p?.unit || "kg", shortage, returned, date: businessDate(d.createdAt) });
+      }
+    }
+    for (const sale of saleRows) {
+      for (const item of sale.items || []) {
+        addSaleMovement({ productId: item.productId, qty: item.qty, outletId: sale.outletId, source: "direct", date: sale.saleDate });
       }
     }
     const movement = [...byProduct.values()].sort((a, b) => b.soldQty - a.soldQty);
+    const departmentSales = [...byDepartment.values()].sort((a, b) => b.soldQty - a.soldQty);
+    const outletSales = [...byOutlet.values()].sort((a, b) => b.soldQty - a.soldQty);
     return send(res, 200, {
       summary: {
-        verifiedDispatches: rows.length,
+        verifiedDispatches: dispatchRows.length,
+        directSales: saleRows.length,
         soldQty: movement.reduce((sum, r) => sum + r.soldQty, 0),
+        directSaleQty: movement.reduce((sum, r) => sum + r.directSaleQty, 0),
+        dispatchSaleQty: movement.reduce((sum, r) => sum + r.dispatchSaleQty, 0),
         returnedQty: movement.reduce((sum, r) => sum + r.returnedQty, 0),
         shortageQty: movement.reduce((sum, r) => sum + r.shortageQty, 0),
         value: movement.reduce((sum, r) => sum + r.value, 0)
       },
       movement,
+      departmentSales,
+      outletSales,
       shortages,
       fastMoving: movement.slice(0, 10),
       slowMoving: movement.slice(-10).reverse()
@@ -879,6 +954,7 @@ async function handleApi(req, res, db, products) {
     const body = await getBody(req);
     const question = String(body.question || "").toLowerCase();
     const visibleDispatches = db.dispatches.filter((d) => canSeeOutlet(user, d.outletId));
+    const visibleSales = (db.sales || []).filter((s) => canSeeOutlet(user, s.outletId));
     const visibleDemands = db.demands.filter((d) => canSeeOutlet(user, d.outletId));
     const visibleOrderRows = visibleOrders(db, user);
     const pendingDemands = visibleDemands.filter((d) => d.status === "pending");
@@ -887,6 +963,7 @@ async function handleApi(req, res, db, products) {
     const tomorrowText = addDays(todayText, 1);
     const todayOrders = visibleOrderRows.filter((o) => o.orderDate === todayText && !["completed", "cancelled"].includes(o.status));
     const tomorrowOrders = visibleOrderRows.filter((o) => o.orderDate === tomorrowText && !["completed", "cancelled"].includes(o.status));
+    const todaySales = visibleSales.filter((s) => s.saleDate === todayText);
     let answer = "";
     if (question.includes("tomorrow") || question.includes("next day")) {
       answer = tomorrowOrders.length
@@ -896,6 +973,9 @@ async function handleApi(req, res, db, products) {
       answer = `There are ${visibleOrderRows.filter((o) => !["completed", "cancelled"].includes(o.status)).length} open customer order(s), including ${todayOrders.length} for today and ${tomorrowOrders.length} for tomorrow.`;
     } else if (question.includes("dispatch") || question.includes("receive")) {
       answer = `There are ${pendingDispatches.length} dispatch(es) waiting for outlet receiving verification. Today has ${visibleDispatches.filter((d) => businessDate(d.createdAt) === todayText).length} dispatch(es).`;
+    } else if (question.includes("sale")) {
+      const todaySaleQty = todaySales.reduce((sum, sale) => sum + (sale.items || []).reduce((lineSum, item) => lineSum + Number(item.qty || 0), 0), 0);
+      answer = `Today has ${todaySales.length} direct factory sale entr${todaySales.length === 1 ? "y" : "ies"} totaling ${todaySaleQty} units. Admin reports include these sales immediately without outlet verification.`;
     } else if (question.includes("challan") || question.includes("demand")) {
       answer = `There are ${pendingDemands.length} pending challan demand(s). Factory should clear the oldest pending demand first.`;
     } else if (question.includes("shortage") || question.includes("return")) {
@@ -905,7 +985,7 @@ async function handleApi(req, res, db, products) {
       })));
       answer = `Recorded shortage quantity is ${shortages.reduce((sum, row) => sum + row.shortage, 0)} units and returned quantity is ${shortages.reduce((sum, row) => sum + row.returned, 0)} units in visible dispatches.`;
     } else {
-      answer = `Current status: ${pendingDemands.length} pending challan(s), ${pendingDispatches.length} dispatch(es) waiting for receiving, ${todayOrders.length} customer order(s) today, and ${tomorrowOrders.length} customer order(s) tomorrow. Ask me about tomorrow orders, shortages, dispatches, challans, or pending work.`;
+      answer = `Current status: ${pendingDemands.length} pending challan(s), ${pendingDispatches.length} dispatch(es) waiting for receiving, ${todaySales.length} direct factory sale entr${todaySales.length === 1 ? "y" : "ies"} today, ${todayOrders.length} customer order(s) today, and ${tomorrowOrders.length} customer order(s) tomorrow. Ask me about sales, tomorrow orders, shortages, dispatches, challans, or pending work.`;
     }
     return send(res, 200, { answer });
   }
@@ -921,6 +1001,7 @@ async function handleApi(req, res, db, products) {
       const date = businessDate(d.createdAt);
       return date >= from && date <= to;
     });
+    const salesInRange = (db.sales || []).filter((s) => s.saleDate >= from && s.saleDate <= to);
     let rows = [];
     if (kind === "shortages") {
       rows = [["date", "challan", "outlet", "product", "unit", "sent", "received", "shortage", "returned"]];
@@ -946,7 +1027,29 @@ async function handleApi(req, res, db, products) {
           grouped.set(key, row);
         }
       }
-      rows = [["date", "outlet", "product", "unit", "sent", "received", "returned", "sold_after_returns"], ...[...grouped.values()].map((r) => [r.date, r.outlet, r.product, r.unit, r.sent, r.received, r.returned, Math.max(0, r.received - r.returned)])];
+      for (const sale of salesInRange) {
+        for (const item of sale.items || []) {
+          const p = productMap.get(item.productId);
+          const key = [sale.saleDate, sale.outletId, item.productId].join("|");
+          const row = grouped.get(key) || { date: sale.saleDate, outlet: outletMap.get(sale.outletId)?.name || sale.outletId, product: p?.name || item.productId, unit: p?.unit || item.unit || "kg", sent: 0, received: 0, returned: 0, directSale: 0 };
+          row.directSale = Number(row.directSale || 0) + Number(item.qty || 0);
+          grouped.set(key, row);
+        }
+      }
+      rows = [["date", "outlet", "product", "unit", "dispatch_sent", "dispatch_received", "returned", "verified_sale", "direct_factory_sale", "total_sale"], ...[...grouped.values()].map((r) => {
+        const verifiedSale = Math.max(0, Number(r.received || 0) - Number(r.returned || 0));
+        const directSale = Number(r.directSale || 0);
+        return [r.date, r.outlet, r.product, r.unit, r.sent, r.received, r.returned, verifiedSale, directSale, verifiedSale + directSale];
+      })];
+    } else if (kind === "sales") {
+      rows = [["date", "sale_no", "outlet", "product", "department", "unit", "qty", "value", "note", "created_by"]];
+      for (const sale of salesInRange) {
+        for (const item of sale.items || []) {
+          const p = productMap.get(item.productId);
+          const qtyValue = Number(item.qty || 0);
+          rows.push([sale.saleDate, sale.saleNo, outletMap.get(sale.outletId)?.name || sale.outletId, p?.name || item.productId, p?.department || "", p?.unit || item.unit || "kg", qtyValue, qtyValue * Number(p?.price || 0), sale.note || "", sale.createdBy || ""]);
+        }
+      }
     } else {
       rows = [["date", "challan", "outlet", "status", "product", "unit", "dispatched", "received", "damaged", "excess_return"]];
       for (const d of rowsInRange) {

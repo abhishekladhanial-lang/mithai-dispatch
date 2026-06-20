@@ -219,6 +219,7 @@ function buildShell() {
     ...(role !== "factory" ? [["bulk", "Bulk Sheet"]] : []),
     ...(role !== "factory" ? [["orders", "Order Booking"]] : [["orders", "Orders"]]),
     ...(role !== "outlet" ? [["dispatch", "Create Dispatch"]] : []),
+    ...(role !== "outlet" ? [["sale", "Sale"]] : []),
     ...(role !== "factory" ? [["verify", "Receive"]] : []),
     ["logs", "Logs"],
     ...(role === "admin" ? [["reports", "Reports"], ["skus", "SKUs"], ["outlets", "Outlets"], ["settings", "Settings"], ["admin", "Admin"]] : [])
@@ -355,11 +356,14 @@ function kpi(label, value, tone = "") {
 
 function renderDashboard(view) {
   const todayDispatches = state.data.dispatches.filter((d) => localDate(d.createdAt) === today());
+  const todaySales = (state.data.sales || []).filter((s) => s.saleDate === today());
   const pendingVerifications = state.data.dispatches.filter((d) => d.status === "pending_verification");
   const pendingDemands = state.data.demands.filter((d) => d.status === "pending");
   const todaysOrders = (state.data.orders || []).filter((o) => o.orderDate === today() && !["completed", "cancelled"].includes(o.status));
   const tomorrowOrders = (state.data.orders || []).filter((o) => o.orderDate === addDays(today(), 1) && !["completed", "cancelled"].includes(o.status));
   const sent = todayDispatches.reduce((sum, d) => sum + d.totals.sentQty, 0);
+  const directSaleQty = todaySales.reduce((sum, sale) => sum + (sale.items || []).reduce((lineSum, item) => lineSum + Number(item.qty || 0), 0), 0);
+  const verifiedSaleQty = todayDispatches.filter((d) => d.status === "verified").reduce((sum, d) => sum + Number(d.totals.soldQty || 0), 0);
   view.innerHTML = `
     <div class="section-head">
       <div><h2>Today</h2><p class="muted">Live view of demand, dispatch, receiving, and returns.</p></div>
@@ -370,6 +374,10 @@ function renderDashboard(view) {
       <div class="span-3">${kpi("Pending verification", pendingVerifications.length, pendingVerifications.length ? "bad" : "")}</div>
       <div class="span-3">${kpi("Total sent", `${qty(sent)} units`)}</div>
       <div class="span-3">${kpi("Open demands", pendingDemands.length, pendingDemands.length ? "warn" : "")}</div>
+      ${state.user.role !== "outlet" ? `
+      <div class="span-3">${kpi("Direct sale today", `${qty(directSaleQty)} units`, directSaleQty ? "good" : "")}</div>
+      <div class="span-3">${kpi("Factory total sale", `${qty(directSaleQty + verifiedSaleQty)} units`, directSaleQty + verifiedSaleQty ? "good" : "")}</div>
+      ` : ""}
       ${state.user.role !== "outlet" ? `
       <div class="span-12 panel">
         <div class="section-head">
@@ -1193,6 +1201,90 @@ function renderDispatch(view) {
   });
 }
 
+function renderSale(view) {
+  const sales = [...(state.data.sales || [])].sort((a, b) => String(b.saleDate).localeCompare(String(a.saleDate)) || String(b.createdAt).localeCompare(String(a.createdAt)));
+  view.innerHTML = `
+    <div class="section-head">
+      <div><h2>Sale</h2><p class="muted">Record direct factory sale to any outlet. This becomes admin factory sale immediately and does not need outlet verification.</p></div>
+    </div>
+    <div class="grid">
+      <form class="span-12 panel stack" data-sale-form>
+        <div class="grid">
+          <label class="span-4">Sale date <input name="saleDate" type="date" value="${today()}" required></label>
+          <label class="span-4">Outlet <select name="outletId">${outletOptions()}</select></label>
+          <label class="span-4">Note <input name="note" placeholder="Counter sale, urgent issue, vehicle note"></label>
+        </div>
+        <div class="notice">Use this when factory issues goods directly as sale without any shop demand or receiving verification.</div>
+        ${itemRowsHtml()}
+        <div class="actions">
+          <button class="btn" type="submit">Save Factory Sale</button>
+        </div>
+      </form>
+      <div class="span-12 panel stack">
+        <div class="section-head">
+          <div><h3>Factory Sale Log</h3><p class="muted">Direct sale entries recorded from factory. These are counted in admin reports immediately.</p></div>
+          <span class="badge good">${sales.length} sales</span>
+        </div>
+        <div class="grid no-print">
+          <label class="span-4">From <input type="date" data-sale-from></label>
+          <label class="span-4">To <input type="date" data-sale-to></label>
+          <label class="span-4">Outlet <select data-sale-outlet><option value="">All outlets</option>${outletOptions()}</select></label>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Sale No</th><th>Date</th><th>Outlet</th><th>Items</th><th>Total Qty</th><th>By</th><th>Note</th></tr></thead>
+          <tbody data-sale-log>${saleRows(sales)}</tbody>
+        </table></div>
+      </div>
+    </div>
+  `;
+  const form = view.querySelector("[data-sale-form]");
+  wireLineEditor(form);
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const items = collectItems(form);
+    try {
+      await api("/api/sales", {
+        method: "POST",
+        body: JSON.stringify({
+          saleDate: form.saleDate.value,
+          outletId: form.outletId.value,
+          note: form.note.value,
+          items
+        })
+      });
+      toast("Factory sale recorded");
+      await load();
+      state.tab = "sale";
+      buildShell();
+    } catch (error) {
+      toast(error.message);
+    }
+  });
+  const renderFiltered = () => {
+    const from = view.querySelector("[data-sale-from]").value || "0000-01-01";
+    const to = view.querySelector("[data-sale-to]").value || "9999-12-31";
+    const oid = view.querySelector("[data-sale-outlet]").value;
+    const filtered = sales.filter((sale) => sale.saleDate >= from && sale.saleDate <= to && (!oid || sale.outletId === oid));
+    view.querySelector("[data-sale-log]").innerHTML = saleRows(filtered);
+  };
+  view.querySelectorAll("[data-sale-from], [data-sale-to], [data-sale-outlet]").forEach((el) => el.addEventListener("input", renderFiltered));
+}
+
+function saleRows(rows) {
+  if (!rows.length) return `<tr><td colspan="7">No direct factory sales found.</td></tr>`;
+  return rows.map((sale) => `
+    <tr>
+      <td><strong>${sale.saleNo}</strong></td>
+      <td>${sale.saleDate}</td>
+      <td>${outlet(sale.outletId).name}</td>
+      <td>${(sale.items || []).map((i) => `${esc(product(i.productId).name)}: ${qtyUnit(i.qty, i.productId)}`).join("<br>")}</td>
+      <td>${qty((sale.items || []).reduce((sum, item) => sum + Number(item.qty || 0), 0))} units</td>
+      <td>${esc(sale.createdBy || "-")}</td>
+      <td>${esc(sale.note || "")}</td>
+    </tr>
+  `).join("");
+}
+
 function renderVerify(view) {
   const rows = state.data.dispatches.filter((d) => d.status === "pending_verification");
   view.innerHTML = `
@@ -1298,7 +1390,7 @@ async function renderReports(view) {
   const from = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10);
   const to = today();
   view.innerHTML = `
-    <div class="section-head"><div><h2>Admin Reports</h2><p class="muted">Verified dispatch is treated as sale; damaged, low quality, and excess returns are deducted.</p></div></div>
+    <div class="section-head"><div><h2>Admin Reports</h2><p class="muted">Direct factory sales count immediately. Verified dispatch sales are counted after receiving, minus returns.</p></div></div>
     <div class="panel stack">
       <div class="grid no-print">
         <label class="span-5">From <input type="date" data-report-from value="${from}"></label>
@@ -1307,6 +1399,7 @@ async function renderReports(view) {
       </div>
       <div class="actions no-print">
         <button class="ghost" data-export="dispatches" type="button">Export Challans CSV</button>
+        <button class="ghost" data-export="sales" type="button">Export Factory Sales CSV</button>
         <button class="ghost" data-export="shortages" type="button">Export Shortages CSV</button>
         <button class="ghost" data-export="daily-summary" type="button">Export Daily Summary CSV</button>
       </div>
@@ -1333,16 +1426,30 @@ async function renderReports(view) {
 function reportHtml(report) {
   return `
     <div class="grid">
+      <div class="span-3">${kpi("Direct sales", report.summary.directSales || 0)}</div>
       <div class="span-3">${kpi("Verified dispatches", report.summary.verifiedDispatches)}</div>
-      <div class="span-3">${kpi("Sold qty", `${qty(report.summary.soldQty)} units`)}</div>
+      <div class="span-3">${kpi("Factory sold qty", `${qty(report.summary.soldQty)} units`)}</div>
       <div class="span-3">${kpi("Returned qty", `${qty(report.summary.returnedQty)} units`)}</div>
+      <div class="span-3">${kpi("Direct sale qty", `${qty(report.summary.directSaleQty || 0)} units`, report.summary.directSaleQty ? "good" : "")}</div>
+      <div class="span-3">${kpi("Dispatch sale qty", `${qty(report.summary.dispatchSaleQty || 0)} units`)}</div>
+      <div class="span-3">${kpi("Shortage qty", `${qty(report.summary.shortageQty || 0)} units`, report.summary.shortageQty ? "bad" : "")}</div>
       <div class="span-3">${kpi("Sales value", money.format(report.summary.value))}</div>
-      <div class="span-7">
-        <h3>Product Movement</h3>
-        <div class="table-wrap"><table><thead><tr><th>Product</th><th>Dept</th><th>Sold</th><th>Returned</th><th>Shortage</th><th>Value</th></tr></thead>
-        <tbody>${report.movement.map((r) => `<tr><td>${r.product}</td><td>${r.department}</td><td>${qty(r.soldQty)} ${r.unit}</td><td>${qty(r.returnedQty)} ${r.unit}</td><td>${qty(r.shortageQty)} ${r.unit}</td><td>${money.format(r.value)}</td></tr>`).join("") || `<tr><td colspan="6">No verified dispatches.</td></tr>`}</tbody></table></div>
+      <div class="span-12">
+        <h3>Product-wise Sale</h3>
+        <div class="table-wrap"><table><thead><tr><th>Product</th><th>Dept</th><th>Total sold</th><th>Direct sale</th><th>Dispatch sale</th><th>Returned</th><th>Shortage</th><th>Value</th></tr></thead>
+        <tbody>${report.movement.map((r) => `<tr><td>${r.product}</td><td>${r.department}</td><td>${qty(r.soldQty)} ${r.unit}</td><td>${qty(r.directSaleQty || 0)} ${r.unit}</td><td>${qty(r.dispatchSaleQty || 0)} ${r.unit}</td><td>${qty(r.returnedQty)} ${r.unit}</td><td>${qty(r.shortageQty)} ${r.unit}</td><td>${money.format(r.value)}</td></tr>`).join("") || `<tr><td colspan="8">No factory sales in this date range.</td></tr>`}</tbody></table></div>
       </div>
-      <div class="span-5">
+      <div class="span-6">
+        <h3>Department-wise Sale</h3>
+        <div class="table-wrap"><table><thead><tr><th>Department</th><th>Total sold</th><th>Direct sale</th><th>Dispatch sale</th><th>Value</th></tr></thead>
+        <tbody>${(report.departmentSales || []).map((r) => `<tr><td>${r.department}</td><td>${qty(r.soldQty)} units</td><td>${qty(r.directSaleQty || 0)} units</td><td>${qty(r.dispatchSaleQty || 0)} units</td><td>${money.format(r.value)}</td></tr>`).join("") || `<tr><td colspan="5">No department sale.</td></tr>`}</tbody></table></div>
+      </div>
+      <div class="span-6">
+        <h3>Outlet-wise Sale</h3>
+        <div class="table-wrap"><table><thead><tr><th>Outlet</th><th>Total sold</th><th>Direct sale</th><th>Dispatch sale</th><th>Value</th></tr></thead>
+        <tbody>${(report.outletSales || []).map((r) => `<tr><td>${r.outlet}</td><td>${qty(r.soldQty)} units</td><td>${qty(r.directSaleQty || 0)} units</td><td>${qty(r.dispatchSaleQty || 0)} units</td><td>${money.format(r.value)}</td></tr>`).join("") || `<tr><td colspan="5">No outlet sale.</td></tr>`}</tbody></table></div>
+      </div>
+      <div class="span-12">
         <h3>Shortage / Return Report</h3>
         <div class="table-wrap"><table><thead><tr><th>Date</th><th>Outlet</th><th>Product</th><th>Shortage</th><th>Return</th></tr></thead>
         <tbody>${report.shortages.map((r) => `<tr><td>${r.date}</td><td>${r.outlet}</td><td>${r.product}</td><td>${qty(r.shortage)} ${r.unit || ""}</td><td>${qty(r.returned)} ${r.unit || ""}</td></tr>`).join("") || `<tr><td colspan="5">No shortages or returns.</td></tr>`}</tbody></table></div>
@@ -1643,6 +1750,7 @@ function renderView() {
   if (state.tab === "bulk") renderBulk(view);
   if (state.tab === "orders") renderOrders(view);
   if (state.tab === "dispatch") renderDispatch(view);
+  if (state.tab === "sale") renderSale(view);
   if (state.tab === "verify") renderVerify(view);
   if (state.tab === "logs") renderLogs(view);
   if (state.tab === "reports") renderReports(view).catch((e) => toast(e.message));
